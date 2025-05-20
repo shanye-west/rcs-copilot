@@ -28,10 +28,14 @@
       // Convert username to email format for Supabase auth
       const email = `${username}@rowdycup.app`;
       
+      // Pad the PIN to meet the 6-character minimum requirement
+      // Supabase requires minimum 6-character passwords, but our app uses 4-digit PINs
+      const paddedPin = pin.padEnd(6, '0');
+      
       // Create auth user
       const { data: authData, error: authError } = await supabase.auth.admin.createUser({
         email,
-        password: pin,
+        password: paddedPin,
         email_confirm: true
       });
       

@@ -1,3 +1,7 @@
+// Supabase requires minimum 6-character passwords, but our app uses 4-digit PINs
+// We pad 4-digit PINs with '0's to meet this requirement
+// Example: User enters "1234" -> We store as "123400" in Supabase
+
 import { writable } from 'svelte/store';
 import { supabase } from '$lib/supabase';
 import { goto } from '$app/navigation';
@@ -33,9 +37,15 @@ const createAuthStore = () => {
         console.log(`Attempting login for: ${username}`);
         const email = `${username}@rowdycup.app`;
         
+        // Supabase requires minimum 6-character passwords, but our app uses 4-digit PINs
+        // We pad 4-digit PINs with '0's to meet this requirement
+        // Example: User enters "1234" -> We store as "123400" in Supabase
+        const paddedPin = pin.padEnd(6, '0');
+        console.log(`PIN padded to meet 6-char requirement`);
+        
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
-          password: pin
+          password: paddedPin
         });
         
         if (error) {

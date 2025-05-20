@@ -29,15 +29,25 @@
       return;
     }
     
+    if (pin.length !== 4 || !/^\d+$/.test(pin)) {
+      error = 'PIN must be 4 digits';
+      return;
+    }
+    
     loading = true;
     error = '';
     
+    console.log(`Attempting login with username: ${username}, PIN: ${pin}`);
+    
     const result = await auth.login(username, pin);
+    
+    console.log('Login result:', result);
     
     if (result.success) {
       goto(redirectTo);
     } else {
       error = result.message || 'Login failed';
+      console.error('Login error details:', error);
     }
     
     loading = false;
