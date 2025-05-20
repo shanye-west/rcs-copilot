@@ -55,7 +55,7 @@
         <div class="text-center">
           <p class="text-sm text-gray-500">Tournament is active</p>
           <div class="mt-3">
-            
+            <a
               href="/rounds"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
@@ -76,7 +76,7 @@
         
         {#if $auth.user?.isAdmin}
           <div class="mt-6">
-            
+            <a
               href="/admin/tournaments/new"
               class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
