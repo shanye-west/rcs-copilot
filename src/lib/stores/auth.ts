@@ -27,11 +27,10 @@ const createAuthStore = () => {
   return {
     subscribe,
     login: async (username: string, pin: string) => {
-      // Reset error state
       update(state => ({ ...state, error: null, loading: true }));
       
       try {
-        // Convert username to email format for Supabase auth
+        console.log(`Attempting login for: ${username}`);
         const email = `${username}@rowdycup.app`;
         
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -39,30 +38,41 @@ const createAuthStore = () => {
           password: pin
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error("Sign in error:", error);
+          throw error;
+        }
         
-        if (data?.user) {
-          // Fetch player details from our players table
-          const { data: playerData, error: playerError } = await supabase
+        console.log("Sign in success:", data);
+        
+        if (data.user) {
+          // Fetch player profile
+          const { data: player, error: profileError } = await supabase
             .from('players')
             .select('*')
             .eq('id', data.user.id)
             .single();
-            
-          if (playerError) throw playerError;
           
+          if (profileError) {
+            console.error("Profile fetch error:", profileError);
+            throw profileError;
+          }
+          
+          // Set user state
           set({
             user: {
-              id: playerData.id,
-              username: playerData.username,
-              fullName: playerData.full_name,
-              isAdmin: playerData.is_admin
+              id: player.id,
+              username: player.username,
+              fullName: player.full_name,
+              isAdmin: player.is_admin
             },
             loading: false,
             error: null
           });
           
           return { success: true };
+        } else {
+          throw new Error("User data not returned from authentication");
         }
       } catch (err: any) {
         update(state => ({ 
@@ -82,32 +92,45 @@ const createAuthStore = () => {
     checkSession: async () => {
       update(state => ({ ...state, loading: true }));
       
-      const { data } = await supabase.auth.getSession();
-      
-      if (data?.session?.user) {
-        // Fetch player details
-        const { data: playerData, error: playerError } = await supabase
-          .from('players')
-          .select('*')
-          .eq('id', data.session.user.id)
-          .single();
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        if (data?.session?.user) {
+          console.log("Found session for user:", data.session.user.id);
           
-        if (!playerError && playerData) {
-          set({
-            user: {
-              id: playerData.id,
-              username: playerData.username,
-              fullName: playerData.full_name,
-              isAdmin: playerData.is_admin
-            },
-            loading: false,
-            error: null
-          });
-          return;
+          // Fetch player details
+          const { data: playerData, error: playerError } = await supabase
+            .from('players')
+            .select('*')
+            .eq('id', data.session.user.id)
+            .single();
+            
+          if (playerError) {
+            console.error("Error fetching player:", playerError);
+            throw playerError;
+          }
+          
+          if (playerData) {
+            set({
+              user: {
+                id: playerData.id,
+                username: playerData.username,
+                fullName: playerData.full_name,
+                isAdmin: playerData.is_admin
+              },
+              loading: false,
+              error: null
+            });
+            return;
+          }
         }
+        
+        // If we get here, no valid session or player data
+        set({ user: null, loading: false, error: null });
+      } catch (err) {
+        console.error("Session check error:", err);
+        set({ user: null, loading: false, error: null });
       }
-      
-      set({ user: null, loading: false, error: null });
     }
   };
 };
