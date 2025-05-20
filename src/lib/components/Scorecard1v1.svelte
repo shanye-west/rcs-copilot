@@ -24,6 +24,30 @@
     if (aUp > bUp) return `${aUp - bUp}↑`;
     return `${bUp - aUp}↓`;
   }
+
+  // Handicap dots logic for 1v1 match
+  function getDots(player, hole) {
+    // If player.handicap_strokes exists, use it
+    if (player.handicap_strokes && player.handicap_strokes.length === 18) {
+      return player.handicap_strokes[hole - 1] > 0 ? '•'.repeat(player.handicap_strokes[hole - 1]) : '';
+    }
+    const handicap = player.handicap || 0;
+    if (handicap === 0) return '';
+    // Assume holes are ordered by difficulty (1=hardest)
+    const strokeIndex = hole;
+    let dots = 0;
+    if (handicap >= 18) {
+      dots = 1;
+      if (handicap - 18 >= 18 - strokeIndex + 1) {
+        dots = 2;
+      } else if (handicap - 18 > 0 && strokeIndex <= (handicap - 18)) {
+        dots = 2;
+      }
+    } else if (handicap > 0 && strokeIndex <= handicap) {
+      dots = 1;
+    }
+    return dots > 0 ? '•'.repeat(dots) : '';
+  }
 </script>
 
 <div class="mb-4">
@@ -35,6 +59,11 @@
         <th class="border px-2 py-1">Hole</th>
         <th class="border px-2 py-1">{players[0].player.username}</th>
         <th class="border px-2 py-1">{players[1].player.username}</th>
+      </tr>
+      <tr>
+        <th class="border px-2 py-1 text-xs text-gray-400">Dots</th>
+        <th class="border px-2 py-1 text-xs text-gray-400">{holes.map(h => getDots(players[0].player, h)).join(' ')}</th>
+        <th class="border px-2 py-1 text-xs text-gray-400">{holes.map(h => getDots(players[1].player, h)).join(' ')}</th>
       </tr>
     </thead>
     <tbody>
@@ -49,6 +78,7 @@
               {:else}
                 {getScore(p.player.id, hole)}
               {/if}
+              <div class="text-xs text-gray-400">{getDots(p.player, hole)}</div>
             </td>
           {/each}
         </tr>
