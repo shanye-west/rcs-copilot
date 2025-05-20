@@ -31,7 +31,7 @@ const createAuthStore = () => {
       
       try {
         console.log(`Attempting login for: ${username}`);
-        const email = `${username}@rowdycup.app`;
+        const email = `${username}@rowdycup.com`;
         
         // Supabase requires minimum 6-character passwords, but our app uses 4-digit PINs
         // We pad 4-digit PINs with '0's to meet this requirement
