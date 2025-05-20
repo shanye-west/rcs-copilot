@@ -38,11 +38,15 @@ export const load = async ({ params }) => {
     });
   }
 
+  // Group players by team for easier access in the UI
+  const teamAPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team === 'A') : [];
+  const teamBPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team === 'B') : [];
+
   // Fetch scores for this match
   const { data: scores } = await supabase
     .from('scores')
     .select('*')
     .eq('match_id', matchId);
 
-  return { match, teams, matchType, matchPlayers, scores };
+  return { match, teams, matchType, matchPlayers, teamAPlayers, teamBPlayers, scores };
 };
