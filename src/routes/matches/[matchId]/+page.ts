@@ -38,9 +38,9 @@ export const load = async ({ params }) => {
     });
   }
 
-  // Group players by team for easier access in the UI
-  const teamAPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team === 'A') : [];
-  const teamBPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team === 'B') : [];
+  // Group players by team for easier access in the UI (UUID-based)
+  const teamAPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team_id === match.team_a_id) : [];
+  const teamBPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team_id === match.team_b_id) : [];
 
   // Also return a sorted list of all players for the UI (if needed)
   const sortedPlayers = matchPlayers ? [...matchPlayers].sort((a, b) => a.player.username.localeCompare(b.player.username)) : [];
