@@ -16,9 +16,9 @@
   const safeTeams = teams || [];
   const safeScores = scores || [];
 
-  // Group players by team for display
-  const teamAPlayers = safeMatchPlayers.filter(mp => mp.team === 'A');
-  const teamBPlayers = safeMatchPlayers.filter(mp => mp.team === 'B');
+  // Group players by team for display (using team UUIDs)
+  const teamAPlayers = safeMatchPlayers.filter(mp => mp.team_id === match?.team_a_id);
+  const teamBPlayers = safeMatchPlayers.filter(mp => mp.team_id === match?.team_b_id);
 
   // Get team objects for color/name
   const teamA = safeTeams.find(t => t.id === match?.team_a_id);
