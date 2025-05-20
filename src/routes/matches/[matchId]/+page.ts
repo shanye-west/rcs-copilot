@@ -42,11 +42,14 @@ export const load = async ({ params }) => {
   const teamAPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team === 'A') : [];
   const teamBPlayers = matchPlayers ? matchPlayers.filter(mp => mp.team === 'B') : [];
 
+  // Also return a sorted list of all players for the UI (if needed)
+  const sortedPlayers = matchPlayers ? [...matchPlayers].sort((a, b) => a.player.username.localeCompare(b.player.username)) : [];
+
   // Fetch scores for this match
   const { data: scores } = await supabase
     .from('scores')
     .select('*')
     .eq('match_id', matchId);
 
-  return { match, teams, matchType, matchPlayers, teamAPlayers, teamBPlayers, scores };
+  return { match, teams, matchType, matchPlayers, teamAPlayers, teamBPlayers, sortedPlayers, scores };
 };
