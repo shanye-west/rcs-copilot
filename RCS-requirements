@@ -1,0 +1,179 @@
+Rowdy Cup Golf Tournament App - Development Guide
+Project Overview
+I'm creating a Progressive Web App for my annual "Rowdy Cup" golf tournament. The app manages scorekeeping, real-time tournament progress, and an integrated sportsbook for friendly betting. As I have zero coding experience, I'll rely heavily on AI assistance throughout development.
+Core Requirements
+1. Scorecard System
+
+Tournament Structure:
+
+Annual tournaments with multiple rounds (Round 1, 2, etc.)
+Each round contains multiple matches
+Only one active tournament at a time
+Admin locking of rounds/matches to finalize
+
+
+Match Types (5 distinct formats):
+
+2v2 Team Scramble (gross scoring; 1 pt win, 0.5 pt tie)
+2v2 Team Shamble (gross scoring; 1 pt win, 0.5 pt tie)
+4v4 Team Scramble (gross scoring; 2 pt win, 1 pt tie)
+2v2 Team Best Ball (net scoring; 1 pt win, 0.5 pt tie)
+1v1 Individual Match (net scoring; 1 pt win, 0.5 pt tie)
+
+
+Scoring Interfaces:
+
+Gross scoring: One score per team per hole (Scramble/Shamble)
+Net scoring: Individual player scores + automatic calculations
+Handicap system based on lowest player in match
+Visual "dots" showing where strokes apply
+Match-play status (AS, 1↑, 3&2, etc.) calculated hole-by-hole
+
+
+Tournament Dashboard:
+
+Team color-coded interface
+Running point totals (completed + pending)
+Visual indicators for locked/pending status
+Round-by-round breakdown
+Match listing with status indicators
+
+
+
+2. Sportsbook System
+
+Public Sportsbook View:
+
+List of all accepted bets
+Money leaderboard showing net winnings
+Filterable by tournament
+Accessible without login
+
+
+Personal Betting Interface:
+
+Four sections: Pending Incoming, Pending Outgoing, Active, Completed
+Create bet options:
+
+Auto-resolving types (match winner, over/under, tournament winner)
+Manual custom bets with description
+
+
+Bet workflow: Propose → Accept/Decline/Counter → Complete → Mark Paid
+Notification system for new bets (toast + nav icon indicator)
+
+
+Resolution Logic:
+
+Auto-resolution when admin locks relevant match/round/tournament
+Manual resolution for custom bets
+Payment tracking separate from resolution (mark as paid)
+
+
+
+3. User Management
+
+Authentication:
+
+Username + 4-digit PIN only (no email/password)
+Admin-created accounts only
+No self-registration or password reset
+Protected routes with login redirect
+
+
+Permissions:
+
+Admin: Create/manage tournaments, lock/unlock, edit any data
+Player: Enter scores for own matches, manage own bets
+Public: View tournament status, completed scores, accepted bets
+
+
+
+4. Statistics & Profiles
+
+Player Profiles:
+
+Year-by-year W-L-T record
+Match type performance breakdown
+Head-to-head stats against specific players
+Best Ball contribution percentage
+
+
+Team Rosters:
+
+Team A/B toggle view
+Current tournament records per player
+Sortable/filterable player listings
+
+
+History & Archive:
+
+Past tournament results
+Player performance trends
+Complete match history
+
+
+
+Technical Requirements
+1. PWA & Offline Support
+
+Critical: Full offline functionality for scoring
+Local queue system with visual indicators (pending/synced/failed)
+Automatic synchronization on reconnect
+Protection against editing locked matches while offline
+Installable on home screen
+
+2. Mobile-First Design
+
+Optimized for phones used on golf course
+Minimal scrolling in critical interfaces
+Top-right hamburger menu
+Clean, simple data entry screens (fat-finger friendly)
+Team color-coding throughout
+
+3. Database Architecture
+
+Dependencies to track:
+
+Tournaments → Rounds → Matches → Scores (clear hierarchy)
+Match Types with format-specific properties
+Player handicaps and course data for net scoring
+Bet resolution linked to match/tournament outcomes
+
+
+Critical Relationships:
+
+Players to Matches (many-to-many via match_players)
+Match result determination
+Scoring linked to specific players and teams
+Bets linked to resolvable entities
+
+
+
+4. Development Priorities
+
+Core scoring & tournament structure
+User authentication & permissions
+Mobile-optimized UI components
+Offline support & sync
+Sportsbook functionality
+Statistics & historical data
+
+Special Considerations for AI Development
+
+State Management: Ensure clean, predictable state flow for offline/online transitions
+Component Isolation: Build separate components for different match types (avoid the React issue where one match type affected another)
+Database Schema: Design with relationships in mind to support all player statistics
+Error Handling: Robust error states for network issues and data conflicts
+Code Structure: Maintainable, well-commented code that's easy to understand and modify even with limited coding knowledge
+Testing: Special focus on offline functionality and correct scoring calculations
+Documentation: Clear inline documentation for future maintenance
+
+Anti-Goals (What I Don't Want)
+
+Overly complex code that's hard to understand or maintain
+Tightly coupled components where changes to one feature break others
+Incomplete error handling that fails silently
+Poor state management leading to sync issues
+Duplicated logic across different components
+Inconsistent UI patterns between sections

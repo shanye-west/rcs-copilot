@@ -1,0 +1,215 @@
+User Management Tables
+players Table
+
+Purpose: Stores user accounts and profile information
+Fields:
+
+id UUID PRIMARY KEY (linked to auth.users)
+username TEXT UNIQUE NOT NULL
+full_name TEXT NOT NULL
+is_admin BOOLEAN DEFAULT FALSE
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+Tournament Structure Tables
+tournaments Table
+
+Purpose: Contains information about each tournament event
+Fields:
+
+id UUID PRIMARY KEY
+name TEXT NOT NULL
+start_date DATE NOT NULL
+end_date DATE NOT NULL
+is_active BOOLEAN DEFAULT FALSE (only one active at a time)
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+rounds Table
+
+Purpose: Divides tournaments into rounds (e.g., "Round 1", "Round 2")
+Fields:
+
+id UUID PRIMARY KEY
+tournament_id UUID REFERENCES tournaments(id) ON DELETE CASCADE
+name TEXT NOT NULL
+sequence INTEGER NOT NULL
+is_locked BOOLEAN DEFAULT FALSE
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+match_types Table
+
+Purpose: Defines the different match formats available
+Fields:
+
+id UUID PRIMARY KEY
+name TEXT NOT NULL (e.g., "2v2 Team Scramble")
+players_per_team INTEGER NOT NULL
+is_net_scoring BOOLEAN DEFAULT FALSE
+win_points NUMERIC NOT NULL
+tie_points NUMERIC NOT NULL
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+matches Table
+
+Purpose: Individual contests within a round
+Fields:
+
+id UUID PRIMARY KEY
+round_id UUID REFERENCES rounds(id) ON DELETE CASCADE
+match_type_id UUID REFERENCES match_types(id)
+team_a_name TEXT NOT NULL (typically "Aviators")
+team_b_name TEXT NOT NULL (typically "Producers")
+is_locked BOOLEAN DEFAULT FALSE
+winner_team TEXT (NULL, 'A', or 'B')
+status TEXT DEFAULT 'scheduled' ('scheduled', 'in_progress', 'completed')
+final_status TEXT (e.g. '3&2', 'AS', '1up', etc.)
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+match_players Table
+
+Purpose: Links players to matches and tracks which team they're on
+Fields:
+
+id UUID PRIMARY KEY
+match_id UUID REFERENCES matches(id) ON DELETE CASCADE
+player_id UUID REFERENCES players(id) ON DELETE RESTRICT
+team TEXT NOT NULL ('A' or 'B')
+handicap_index NUMERIC
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+Course and Scoring Tables
+courses Table
+
+Purpose: Golf course information for handicap calculations
+Fields:
+
+id UUID PRIMARY KEY
+name TEXT NOT NULL
+course_rating NUMERIC NOT NULL
+slope_rating INTEGER NOT NULL
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+hole_handicaps Table
+
+Purpose: Maps each hole's stroke index for handicap calculations
+Fields:
+
+id UUID PRIMARY KEY
+course_id UUID REFERENCES courses(id) ON DELETE CASCADE
+hole_number INTEGER NOT NULL
+handicap_rank INTEGER NOT NULL (1-18 ranking)
+par INTEGER NOT NULL
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+UNIQUE(course_id, hole_number)
+
+
+
+scores Table
+
+Purpose: Tracks hole-by-hole scores for each player in a match
+Fields:
+
+id UUID PRIMARY KEY
+match_id UUID REFERENCES matches(id) ON DELETE CASCADE
+player_id UUID REFERENCES players(id) ON DELETE RESTRICT
+team TEXT NOT NULL ('A' or 'B')
+hole_number INTEGER NOT NULL
+gross_score INTEGER
+net_score INTEGER
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+offline_sync_status TEXT DEFAULT 'synced' ('pending', 'synced', 'failed')
+UNIQUE(match_id, player_id, hole_number)
+
+
+
+Sportsbook Tables
+bets Table
+
+Purpose: Tracks all wagers and their status
+Fields:
+
+id UUID PRIMARY KEY
+bettor_id UUID REFERENCES players(id)
+opponent_id UUID REFERENCES players(id)
+tournament_id UUID REFERENCES tournaments(id) ON DELETE SET NULL
+match_id UUID REFERENCES matches(id) ON DELETE SET NULL
+bet_type TEXT NOT NULL ('match_winner', 'tournament_winner', 'over_under', 'custom')
+amount NUMERIC NOT NULL
+odds NUMERIC DEFAULT 1.0
+description TEXT
+status TEXT DEFAULT 'pending' ('pending', 'accepted', 'declined', 'completed')
+outcome TEXT ('win', 'loss', 'push')
+is_paid BOOLEAN DEFAULT FALSE
+created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+
+
+
+Match Type Seed Data
+These are the five match types that need to be pre-loaded:
+
+2v2 Team Scramble
+
+2 players per team
+Gross scoring
+1 point for win, 0.5 points for tie
+
+
+2v2 Team Shamble
+
+2 players per team
+Gross scoring
+1 point for win, 0.5 points for tie
+
+
+4v4 Team Scramble
+
+4 players per team
+Gross scoring
+2 points for win, 1 point for tie
+
+
+2v2 Team Best Ball
+
+2 players per team
+Net scoring
+1 point for win, 0.5 points for tie
+
+
+1v1 Individual Match
+
+1 player per team
+Net scoring
+1 point for win, 0.5 points for tie
+
+
+
+Special Requirements:
+
+Only one active tournament at a time: Enforced by is_active in tournaments table
+Round locking: When is_locked = true, scores cannot be modified
+Match-play status: Calculated from scores (AS, 1↑, 3&2, etc.) and stored in final_status
+Offline support: Tracked via offline_sync_status in scores table
+Net scoring with handicaps:
+
+Uses handicap_index, course_rating, slope_rating
+"Dots" (strokes) applied based on hole handicap_rank
+Players get strokes based on the lowest handicap player in the match
+
+
+
+This schema provides complete support for all your application requirements including different match types, handicap calculations, round locking, and the sportsbook system.
