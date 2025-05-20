@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { auth } from '$lib/stores/auth';
+  import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
 
   export let data;
   const { match, teams, matchType, matchPlayers, scores } = data;
@@ -51,6 +52,9 @@
       alert('Error saving score: ' + error.message);
     }
   }
+
+  // Helper to determine if this is a 1v1 match
+  const is1v1 = matchType?.name === '1v1 Individual Match' && teamAPlayers.length === 1 && teamBPlayers.length === 1;
 </script>
 
 <section class="max-w-3xl mx-auto p-4">
@@ -58,46 +62,16 @@
   <div class="mb-2 text-gray-600">Match Type: {matchType?.name}</div>
   <div class="mb-6 text-gray-500">Status: {match.status}</div>
 
-  <div class="overflow-x-auto">
-    <table class="min-w-full border text-sm">
-      <thead>
-        <tr>
-          <th class="border px-2 py-1">Hole</th>
-          {#each teamAPlayers as p}
-            <th class="border px-2 py-1" style="color:{teamA?.color}">{p.player.username}</th>
-          {/each}
-          {#each teamBPlayers as p}
-            <th class="border px-2 py-1" style="color:{teamB?.color}">{p.player.username}</th>
-          {/each}
-        </tr>
-      </thead>
-      <tbody>
-        {#each holes as hole}
-          <tr>
-            <td class="border px-2 py-1 font-bold">{hole}</td>
-            {#each teamAPlayers as p}
-              <td class="border px-2 py-1">
-                {#if !isLocked}
-                  <input type="number" min="1" max="20" class="w-12 p-1 border rounded text-center" bind:value={p.scores[hole]}
-                    on:change={() => saveScore(p.player_id, hole, p.scores[hole])} />
-                {:else}
-                  {getScore(p.player_id, hole)}
-                {/if}
-              </td>
-            {/each}
-            {#each teamBPlayers as p}
-              <td class="border px-2 py-1">
-                {#if !isLocked}
-                  <input type="number" min="1" max="20" class="w-12 p-1 border rounded text-center" bind:value={p.scores[hole]}
-                    on:change={() => saveScore(p.player_id, hole, p.scores[hole])} />
-                {:else}
-                  {getScore(p.player_id, hole)}
-                {/if}
-              </td>
-            {/each}
-          </tr>
-        {/each}
-      </tbody>
-    </table>
-  </div>
+  {#if is1v1}
+    <Scorecard1v1
+      players={[teamAPlayers[0], teamBPlayers[0]]}
+      scores={scores}
+      holes={Array.from({ length: 18 }, (_, i) => i + 1)}
+      isLocked={isLocked}
+      saveScore={saveScore}
+    />
+  {:else}
+    <!-- Existing scorecard UI for other match types -->
+    <div class="text-gray-500">This match type is not yet implemented.</div>
+  {/if}
 </section>

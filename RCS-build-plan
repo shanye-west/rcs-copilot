@@ -1,0 +1,98 @@
+Rowdy Cup App: Strategic Build Plan
+Build Order Overview
+For a complex PWA like yours with offline support and real-time updates, we'll follow a foundation-first approach. This means building core infrastructure before user-facing features, ensuring we don't have to refactor critical parts later.
+Here's the recommended build sequence:
+Phase 1: Database & Authentication Foundation (Weeks 1-2)
+1. Database Schema Setup
+Create complete Supabase schema first (all tables, relationships)
+Set up Row-Level Security policies for auth
+Add initial seed data (match types, sample tournament)
+Test queries for critical data relationships
+2. Authentication System
+Implement username/PIN login interface
+Set up protected routes with redirects
+Create user management for admins
+Test auth flow completely
+3. Base Layout & Navigation
+Create app shell with responsive layout
+Implement hamburger menu and navigation
+Set up route structure in SvelteKit
+Build loading states and error boundaries
+Phase 2: Tournament & Match Core (Weeks 3-4)
+1. Tournament Structure
+Create tournament home page (list of tournaments)
+Build round listing page (matches in a round)
+Implement admin controls for tournament/round creation
+Add locking mechanism for rounds
+2. Match Components (One at a time)
+Start with simplest match type (1v1 Individual)
+Then build 2v2 Team Scramble (gross scoring)
+Add Best Ball component with handicap calculations
+Finally implement the remaining match types
+3. Scoring Logic
+Implement gross scoring system first
+Build handicap calculation logic
+Create net scoring mechanism
+Add match status calculation (AS, 1↑, etc.)
+Phase 3: Offline & Realtime (Weeks 5-6)
+1. Offline Support
+Set up service worker registration
+Create IndexedDB storage for offline data
+Implement sync queue mechanism
+Add visual indicators for sync status
+2. Real-time Updates
+Configure Supabase realtime channels
+Set up subscription management
+Add client-side state updates on data changes
+Test concurrent scoring scenarios
+Phase 4: Sportsbook Module (Weeks 7-8)
+1. Public Sportsbook View
+Create bet listing interface
+Implement filter controls
+Build money leaderboard
+2. Betting Management
+Create My Bets page with sections
+Implement bet creation workflow
+Add accept/decline/counter functionality
+Set up notification system
+3. Bet Resolution
+Implement auto-resolution logic
+Create manual resolution interface
+Add payment tracking system
+Phase 5: Stats & Polish (Weeks 9-10)
+1. Player Statistics
+Build profile page base
+Implement stats calculation logic
+Create head-to-head comparison view
+Add historical data displays
+2. Final Polish
+Implement comprehensive error handling
+Add animations and transitions
+Optimize loading performance
+Conduct usability testing
+Component-by-Component Build Strategy
+When building each feature, I recommend this mini-cycle:
+Start with the database model for the feature
+Create the SvelteKit endpoint (API route)
+Build the component with mock data initially
+Connect to live data and test
+Add error states and edge cases
+Implement offline support for the feature
+Specific Component Development Order
+I recommend building these key components in this sequence:
+Tournament Home (foundational navigation hub)
+Individual Match Scorecard (simplest scoring logic)
+Team Scramble Scorecard (gross scoring)
+Best Ball Scorecard (most complex with handicaps)
+Sportsbook Listing (public view)
+My Bets Management (personal interface)
+Player Profile (builds on existing data)
+For Working with AI
+When you're ready to build a specific component, tell the AI:
+What component you're building (from the list above)
+The exact requirements for that component
+Which related components are already built
+Where you're currently stuck (if applicable)
+For example: "Let's build the 2-man Best Ball scorecard component. This match type requires individual player scores, displaying handicap dots on applicable holes, calculating net scores, and automatically using the better net score for each team. We've already built the basic tournament and round views."
+This structured approach to building your app will ensure a strong foundation, minimize rework, and create a clean, maintainable codebase that AI can help you develop efficiently.
+
