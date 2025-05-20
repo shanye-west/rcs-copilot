@@ -13,6 +13,11 @@
 </script>
 
 <section class="max-w-3xl mx-auto p-4">
+  <nav class="mb-4 text-sm text-gray-500" aria-label="Breadcrumb">
+    <a href="/" class="hover:underline text-blue-600">Home</a>
+    <span class="mx-1">/</span>
+    <span class="text-gray-700 font-semibold">Tournament</span>
+  </nav>
   {#if tournament}
     <h1 class="text-3xl font-bold mb-2">{tournament.name}</h1>
     <div class="mb-6 text-gray-600">
