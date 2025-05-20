@@ -1,12 +1,17 @@
 <script lang="ts">
+  import { supabase } from '$lib/supabase';
+  import { onMount } from 'svelte';
+  import { page } from '$app/stores';
+  import { auth } from '$lib/stores/auth';
+
   export let data;
   const { match, teams, matchType, matchPlayers, scores } = data;
 
-  // Group players by team
+  // Group players by team for display
   const teamAPlayers = matchPlayers.filter(mp => mp.team === 'A');
   const teamBPlayers = matchPlayers.filter(mp => mp.team === 'B');
 
-  // Get team names/colors
+  // Get team objects for color/name
   const teamA = teams.find(t => t.id === match.team_a_id);
   const teamB = teams.find(t => t.id === match.team_b_id);
 
@@ -16,6 +21,35 @@
   // Helper to get score for a player/team/hole
   function getScore(playerId, hole) {
     return scores.find(s => s.player_id === playerId && s.hole_number === hole)?.gross_score ?? '';
+  }
+
+  // Helper to check if match is locked
+  const isLocked = match.is_locked;
+
+  // Initialize local score state for each player
+  onMount(() => {
+    for (const p of matchPlayers) {
+      p.scores = {};
+      for (const hole of holes) {
+        p.scores[hole] = getScore(p.player_id, hole);
+      }
+    }
+  });
+
+  // Save score to Supabase
+  async function saveScore(playerId, hole, value) {
+    if (!auth.user) return;
+    // Upsert score for this player/hole/match
+    const { error } = await supabase.from('scores').upsert({
+      match_id: match.id,
+      player_id: playerId,
+      team: teamAPlayers.find(p => p.player_id === playerId) ? 'A' : 'B',
+      hole_number: hole,
+      gross_score: value ? parseInt(value) : null
+    }, { onConflict: ['match_id', 'player_id', 'hole_number'] });
+    if (error) {
+      alert('Error saving score: ' + error.message);
+    }
   }
 </script>
 
@@ -42,10 +76,24 @@
           <tr>
             <td class="border px-2 py-1 font-bold">{hole}</td>
             {#each teamAPlayers as p}
-              <td class="border px-2 py-1">{getScore(p.player_id, hole)}</td>
+              <td class="border px-2 py-1">
+                {#if !isLocked}
+                  <input type="number" min="1" max="20" class="w-12 p-1 border rounded text-center" bind:value={p.scores[hole]}
+                    on:change={() => saveScore(p.player_id, hole, p.scores[hole])} />
+                {:else}
+                  {getScore(p.player_id, hole)}
+                {/if}
+              </td>
             {/each}
             {#each teamBPlayers as p}
-              <td class="border px-2 py-1">{getScore(p.player_id, hole)}</td>
+              <td class="border px-2 py-1">
+                {#if !isLocked}
+                  <input type="number" min="1" max="20" class="w-12 p-1 border rounded text-center" bind:value={p.scores[hole]}
+                    on:change={() => saveScore(p.player_id, hole, p.scores[hole])} />
+                {:else}
+                  {getScore(p.player_id, hole)}
+                {/if}
+              </td>
             {/each}
           </tr>
         {/each}

@@ -22,11 +22,21 @@ export const load = async ({ params }) => {
     .eq('id', match.match_type_id)
     .single();
 
-  // Fetch players for this match
+  // Fetch players for this match (include player full_name, username, team_id)
   const { data: matchPlayers } = await supabase
     .from('match_players')
-    .select('*, player:player_id(*, team_id)')
+    .select('*, player:player_id(id, username, full_name, team_id)')
     .eq('match_id', matchId);
+
+  // Sort players by team and then by username for consistent display
+  if (matchPlayers) {
+    matchPlayers.sort((a, b) => {
+      if (a.team === b.team) {
+        return a.player.username.localeCompare(b.player.username);
+      }
+      return a.team.localeCompare(b.team);
+    });
+  }
 
   // Fetch scores for this match
   const { data: scores } = await supabase
