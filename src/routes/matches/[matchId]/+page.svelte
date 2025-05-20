@@ -5,6 +5,7 @@
   import { auth } from '$lib/stores/auth';
   import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
   import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
+  import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
 
   export let data;
   const { match, teams, matchType, matchPlayers, scores } = data;
@@ -59,6 +60,9 @@
 
   // Helper to determine if this is a 2v2 Team Scramble match
   const is2v2Scramble = matchType?.name === '2v2 Team Scramble' && teamAPlayers.length === 2 && teamBPlayers.length === 2;
+
+  // Helper to determine if this is a 2v2 Team Best Ball match
+  const is2v2BestBall = matchType?.name === '2v2 Team Best Ball' && teamAPlayers.length === 2 && teamBPlayers.length === 2;
 </script>
 
 <section class="max-w-3xl mx-auto p-4">
@@ -76,6 +80,15 @@
     />
   {:else if is2v2Scramble}
     <Scorecard2v2Scramble
+      teamAPlayers={teamAPlayers}
+      teamBPlayers={teamBPlayers}
+      scores={scores}
+      holes={Array.from({ length: 18 }, (_, i) => i + 1)}
+      isLocked={isLocked}
+      saveScore={saveScore}
+    />
+  {:else if is2v2BestBall}
+    <Scorecard2v2BestBall
       teamAPlayers={teamAPlayers}
       teamBPlayers={teamBPlayers}
       scores={scores}
