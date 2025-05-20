@@ -42,7 +42,14 @@
   </header>
   
   {#if menuOpen}
-    <div class="fixed inset-0 z-40 bg-black bg-opacity-50" on:click={closeMenu}></div>
+    <div 
+      class="fixed inset-0 z-40 bg-black bg-opacity-50" 
+      on:click={closeMenu}
+      on:keydown={(e) => e.key === 'Escape' && closeMenu()}
+      role="button"
+      tabindex="0"
+      aria-label="Close menu"
+    ></div>
     <div class="fixed top-0 right-0 z-50 w-64 h-full bg-white shadow-lg transform transition-transform duration-300">
       <div class="p-4 border-b">
         <div class="flex items-center justify-between">
