@@ -4,6 +4,7 @@
   import { page } from '$app/stores';
   import { auth } from '$lib/stores/auth';
   import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
+  import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
 
   export let data;
   const { match, teams, matchType, matchPlayers, scores } = data;
@@ -55,6 +56,9 @@
 
   // Helper to determine if this is a 1v1 match
   const is1v1 = matchType?.name === '1v1 Individual Match' && teamAPlayers.length === 1 && teamBPlayers.length === 1;
+
+  // Helper to determine if this is a 2v2 Team Scramble match
+  const is2v2Scramble = matchType?.name === '2v2 Team Scramble' && teamAPlayers.length === 2 && teamBPlayers.length === 2;
 </script>
 
 <section class="max-w-3xl mx-auto p-4">
@@ -70,8 +74,16 @@
       isLocked={isLocked}
       saveScore={saveScore}
     />
+  {:else if is2v2Scramble}
+    <Scorecard2v2Scramble
+      teamAPlayers={teamAPlayers}
+      teamBPlayers={teamBPlayers}
+      scores={scores}
+      holes={Array.from({ length: 18 }, (_, i) => i + 1)}
+      isLocked={isLocked}
+      saveScore={saveScore}
+    />
   {:else}
-    <!-- Existing scorecard UI for other match types -->
     <div class="text-gray-500">This match type is not yet implemented.</div>
   {/if}
 </section>
