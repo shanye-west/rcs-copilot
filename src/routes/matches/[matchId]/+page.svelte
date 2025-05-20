@@ -10,28 +10,33 @@
   export let data;
   const { match, teams, matchType, matchPlayers, scores } = data;
 
+  // Defensive: handle null/undefined data
+  const safeMatchPlayers = matchPlayers || [];
+  const safeTeams = teams || [];
+  const safeScores = scores || [];
+
   // Group players by team for display
-  const teamAPlayers = matchPlayers.filter(mp => mp.team === 'A');
-  const teamBPlayers = matchPlayers.filter(mp => mp.team === 'B');
+  const teamAPlayers = safeMatchPlayers.filter(mp => mp.team === 'A');
+  const teamBPlayers = safeMatchPlayers.filter(mp => mp.team === 'B');
 
   // Get team objects for color/name
-  const teamA = teams.find(t => t.id === match.team_a_id);
-  const teamB = teams.find(t => t.id === match.team_b_id);
+  const teamA = safeTeams.find(t => t.id === match?.team_a_id);
+  const teamB = safeTeams.find(t => t.id === match?.team_b_id);
 
   // For now, just show 18 holes
   const holes = Array.from({ length: 18 }, (_, i) => i + 1);
 
   // Helper to get score for a player/team/hole
-  function getScore(playerId, hole) {
-    return scores.find(s => s.player_id === playerId && s.hole_number === hole)?.gross_score ?? '';
+  function getScore(playerId: string, hole: number) {
+    return safeScores.find(s => s.player_id === playerId && s.hole_number === hole)?.gross_score ?? '';
   }
 
   // Helper to check if match is locked
-  const isLocked = match.is_locked;
+  const isLocked = match?.is_locked;
 
   // Initialize local score state for each player
   onMount(() => {
-    for (const p of matchPlayers) {
+    for (const p of safeMatchPlayers) {
       p.scores = {};
       for (const hole of holes) {
         p.scores[hole] = getScore(p.player_id, hole);
@@ -40,16 +45,18 @@
   });
 
   // Save score to Supabase
-  async function saveScore(playerId, hole, value) {
+  async function saveScore(playerId: string, hole: number, value: number) {
     if (!auth.user) return;
     // Upsert score for this player/hole/match
-    const { error } = await supabase.from('scores').upsert({
-      match_id: match.id,
-      player_id: playerId,
-      team: teamAPlayers.find(p => p.player_id === playerId) ? 'A' : 'B',
-      hole_number: hole,
-      gross_score: value ? parseInt(value) : null
-    }, { onConflict: ['match_id', 'player_id', 'hole_number'] });
+    const { error } = await supabase.from('scores').upsert([
+      {
+        match_id: match.id,
+        player_id: playerId,
+        team: teamAPlayers.find(p => p.player_id === playerId) ? 'A' : 'B',
+        hole_number: hole,
+        gross_score: value ? parseInt(value as any) : null
+      }
+    ], { onConflict: 'match_id,player_id,hole_number' });
     if (error) {
       alert('Error saving score: ' + error.message);
     }
