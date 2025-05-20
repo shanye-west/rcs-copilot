@@ -10,6 +10,7 @@ export const load = async () => {
 
   let rounds = [];
   let matches = [];
+  let matchTypes = [];
 
   if (tournament) {
     // Fetch rounds for the active tournament
@@ -29,7 +30,13 @@ export const load = async () => {
         .in('round_id', roundIds);
       matches = matchesData || [];
     }
+
+    // Fetch all match types for lookup
+    const { data: matchTypesData } = await supabase
+      .from('match_types')
+      .select('*');
+    matchTypes = matchTypesData || [];
   }
 
-  return { tournament, rounds, matches };
+  return { tournament, rounds, matches, matchTypes };
 };

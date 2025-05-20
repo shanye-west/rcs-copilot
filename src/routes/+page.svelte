@@ -1,9 +1,14 @@
 <script lang="ts">
   export let data;
-  const { tournament, rounds, matches } = data;
+  const { tournament, rounds, matches, matchTypes } = data;
 
   function getMatchesForRound(roundId: string) {
     return matches.filter((m) => m.round_id === roundId);
+  }
+
+  function getMatchTypeName(matchTypeId: string) {
+    const type = matchTypes.find((t) => t.id === matchTypeId);
+    return type ? type.name : matchTypeId;
   }
 </script>
 
@@ -26,8 +31,7 @@
                 <span class="ml-4 text-xs px-2 py-1 rounded bg-gray-100 text-gray-600">{match.status}</span>
               </div>
               <div class="mt-2 sm:mt-0">
-                <span class="text-sm text-gray-500">Match Type: {match.match_type_id}</span>
-                <!-- TODO: Replace match_type_id with match type name via join/lookup -->
+                <span class="text-sm text-gray-500">Match Type: {getMatchTypeName(match.match_type_id)}</span>
               </div>
             </li>
           {/each}
