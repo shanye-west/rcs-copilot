@@ -22,7 +22,7 @@
       <div class="mb-6 border rounded-lg bg-white shadow p-4">
         <div class="flex items-center mb-2">
           <h2 class="text-xl font-semibold flex-1">{round.name}</h2>
-          <a href="/rounds/{round.id}" class="ml-2 text-blue-600 hover:text-blue-800 flex items-center" title="View Round">
+          <a href={`/rounds/${round.id}`} class="ml-2 text-blue-600 hover:text-blue-800 flex items-center" title="View Round">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
             <span class="hidden sm:inline">Go to Round</span>
           </a>
