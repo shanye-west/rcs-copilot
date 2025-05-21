@@ -86,14 +86,13 @@
   }
 
   // Helper to determine if this is a 1v1 match
-  const is1v1 = matchType?.name === '1v1 Individual Match' && teamAPlayers.length === 1 && teamBPlayers.length === 1;
+  const is1v1 = matchType?.name === '1v1 Individual Match';
 
   // Helper to determine if this is a 2v2 Team Scramble match
-  const is2v2Scramble = matchType?.name === '2v2 Team Scramble' && teamAPlayers.length === 2 && teamBPlayers.length === 2;
-  console.log(`DEBUG: 2v2 Scramble check - Type: ${matchType?.name}, Team A: ${teamAPlayers.length} players, Team B: ${teamBPlayers.length} players`);
+  const is2v2Scramble = matchType?.name === '2v2 Team Scramble';  // Don't check for exact player count
 
   // Helper to determine if this is a 2v2 Team Best Ball match
-  const is2v2BestBall = matchType?.name === '2v2 Team Best Ball' && teamAPlayers.length === 2 && teamBPlayers.length === 2;
+  const is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
 </script>
 
 <section class="max-w-3xl mx-auto p-4">

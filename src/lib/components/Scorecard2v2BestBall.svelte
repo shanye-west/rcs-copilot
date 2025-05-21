@@ -53,7 +53,10 @@
 
   // For each hole, get the best net score for each team
   function getBestNetScore(players, hole) {
-    const netScores = players.map(p => getScore(p.player.id, hole)).filter(Boolean);
+    const netScores = players
+      .filter(p => p && p.player && p.player.id)
+      .map(p => getScore(p.player.id, hole))
+      .filter(Boolean);
     if (netScores.length === 0) return '';
     return Math.min(...netScores);
   }
@@ -65,21 +68,43 @@
     <thead>
       <tr>
         <th class="border px-2 py-1">Hole</th>
-        {#each teamAPlayers as p}
-          <th class="border px-2 py-1">{p.player.username}</th>
+        {#each teamAPlayers.slice(0,2) as p}
+          <th class="border px-2 py-1">
+            {#if p && p.player && p.player.username}
+              {p.player.username}
+            {:else if p && p.username}
+              {p.username}
+            {:else}
+              Player {p ? p.player_id : 'Unknown'}
+            {/if}
+          </th>
         {/each}
         <th class="border px-2 py-1 bg-blue-50">Best Ball (A)</th>
-        {#each teamBPlayers as p}
-          <th class="border px-2 py-1">{p.player.username}</th>
+        {#each teamBPlayers.slice(0,2) as p}
+          <th class="border px-2 py-1">
+            {#if p && p.player && p.player.username}
+              {p.player.username}
+            {:else if p && p.username}
+              {p.username}
+            {:else}
+              Player {p ? p.player_id : 'Unknown'}
+            {/if}
+          </th>
         {/each}
         <th class="border px-2 py-1 bg-red-50">Best Ball (B)</th>
       </tr>
       <tr>
         <th class="border px-2 py-1 text-xs text-gray-400">Dots</th>
-        {#each teamAPlayers as p}
+        {#each teamAPlayers.slice(0,2) as p}
           {#each holes as hole}
             {#if hole === 1}
-              <th class="border px-2 py-1 text-xs text-gray-400" colspan={holes.length}>{holes.map(h => getDots(p.player, h)).join(' ')}</th>
+              <th class="border px-2 py-1 text-xs text-gray-400" colspan={holes.length}>
+                {#if p && p.player}
+                  {holes.map(h => getDots(p.player, h)).join(' ')}
+                {:else}
+                  -
+                {/if}
+              </th>
             {/if}
           {/each}
         {/each}

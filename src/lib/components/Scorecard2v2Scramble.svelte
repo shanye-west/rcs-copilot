@@ -24,10 +24,26 @@
       <tr>
         <th class="border px-2 py-1"></th>
         {#each teamAPlayers.slice(0,2) as p}
-          <th class="border px-2 py-1">{p.player?.username || p.username || p.player_id}</th>
+          <th class="border px-2 py-1">
+            {#if p && p.player && p.player.username}
+              {p.player.username}
+            {:else if p && p.username}
+              {p.username}
+            {:else}
+              Player {p ? p.player_id : 'Unknown'}
+            {/if}
+          </th>
         {/each}
         {#each teamBPlayers.slice(0,2) as p}
-          <th class="border px-2 py-1">{p.player?.username || p.username || p.player_id}</th>
+          <th class="border px-2 py-1">
+            {#if p && p.player && p.player.username}
+              {p.player.username}
+            {:else if p && p.username}
+              {p.username}
+            {:else}
+              Player {p ? p.player_id : 'Unknown'}
+            {/if}
+          </th>
         {/each}
       </tr>
     </thead>
