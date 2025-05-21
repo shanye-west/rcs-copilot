@@ -115,40 +115,6 @@
 			}
 		}
 	}
-			hole_number: hole,
-			score: value,
-			match_id: match.id
-		});
-
-		// If we're online, try to save to Supabase directly
-		if ($offlineStore.isOnline) {
-			try {
-				// Upsert score for this player/hole/match
-				const { error } = await supabase.from('scores').upsert(
-					[
-						{
-							match_id: match.id,
-							player_id: playerId,
-							team: playerEntry.team_id, // Use player's team_id directly
-							hole_number: hole,
-							gross_score: value !== null ? Number(value) : null
-						}
-					],
-					{ onConflict: 'match_id,player_id,hole_number' }
-				);
-				
-				if (error) {
-					console.error('Error saving score:', error.message);
-				} else {
-					// Mark as synced in the offline store
-					offlineStore.markSynced(playerId, hole, match.id);
-				}
-			} catch (error) {
-				console.error('Failed to save score:', error);
-				// Score remains in offline store for later sync
-			}
-		}
-	}
 
 	// Helper to determine match types
 	const is1v1 = matchType?.name === '1v1 Individual Match';
