@@ -23,11 +23,11 @@
       </tr>
       <tr>
         <th class="border px-2 py-1"></th>
-        {#each teamAPlayers as p}
-          <th class="border px-2 py-1">{p.player.username}</th>
+        {#each teamAPlayers.slice(0,2) as p}
+          <th class="border px-2 py-1">{p.player?.username || p.username || p.player_id}</th>
         {/each}
-        {#each teamBPlayers as p}
-          <th class="border px-2 py-1">{p.player.username}</th>
+        {#each teamBPlayers.slice(0,2) as p}
+          <th class="border px-2 py-1">{p.player?.username || p.username || p.player_id}</th>
         {/each}
       </tr>
     </thead>
