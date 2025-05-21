@@ -74,7 +74,7 @@ export const load = async ({ params }) => {
 			teamBPlayers = enhancedMatchPlayers.filter((mp) => mp.team_id === teamBId);
 		}
 	} // Fetch scores for this match
-	const { data: scores } = await supabase.from('scores').select('*').eq('match_id', matchId);
+	const { data: scores } = await supabase.from('match_scores').select('*').eq('match_id', matchId);
 
 	return {
 		match,

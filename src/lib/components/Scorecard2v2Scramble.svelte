@@ -21,7 +21,7 @@
 	// Your props
 	export let teamAPlayers: Player[] = [];
 	export let teamBPlayers: Player[] = [];
-	export const scores: ScoreData[] = [];
+	export let scores: ScoreData[] = [];
 	export let holes: number[] = [];
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
@@ -53,6 +53,16 @@
 				safeHoles.forEach((hole) => {
 					player.scores[hole] = '';
 				});
+			}
+		});
+
+		// Populate initial values from incoming scores prop
+		scores.forEach((s) => {
+			const player = [...safeTeamAPlayers, ...safeTeamBPlayers].find(
+				(p) => p.player_id === s.player_id
+			);
+			if (player?.scores) {
+				player.scores[s.hole_number] = s.gross_score ?? '';
 			}
 		});
 	});

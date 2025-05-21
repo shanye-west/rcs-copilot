@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import {
 		calculateNetScore,
 		calculateHandicapDots,
@@ -10,7 +11,7 @@
 
 	export let teamAPlayers: Player[];
 	export let teamBPlayers: Player[];
-	export let scores: Score[];
+	export let scores: Score[] = [];
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
@@ -18,6 +19,33 @@
 		playerId: string,
 		hole: number
 	) => 'pending' | 'synced' | 'failed' | undefined;
+
+	// local state init
+	$: safeTeamAPlayers = teamAPlayers || [];
+	$: safeTeamBPlayers = teamBPlayers || [];
+	$: safeHoles = holes || [];
+
+	onMount(() => {
+		// ensure each player has a scores object and populate from incoming scores
+		teamAPlayers.forEach((p) => {
+			if (!p.scores) p.scores = {};
+			holes.forEach((h) => {
+				if (p.scores[h] === undefined) p.scores[h] = '';
+			});
+		});
+		teamBPlayers.forEach((p) => {
+			if (!p.scores) p.scores = {};
+			holes.forEach((h) => {
+				if (p.scores[h] === undefined) p.scores[h] = '';
+			});
+		});
+		scores.forEach((s) => {
+			const p = teamAPlayers.concat(teamBPlayers).find(
+				(x) => x.player_id === s.player_id
+			);
+			if (p?.scores) p.scores[s.hole_number] = s.gross_score ?? '';
+		});
+	});
 
 	// Helper to get score for a player/hole
 	function getScore(playerId: string, hole: number): number | string {
@@ -116,7 +144,7 @@
 									max="20"
 									class="w-12 rounded border p-1 text-center"
 									bind:value={p.scores[hole]}
-									on:change={() => saveScore(p.player.id, hole, p.scores[hole])}
+									on:change={() => saveScore(p.player_id, hole, p.scores[hole])}
 								/>
 								<!-- Sync status indicator -->
 								{#if typeof getSyncStatus === 'function'}
