@@ -7,32 +7,10 @@ const STATIC_CACHE_NAME = 'static-cache-v1';
 const DYNAMIC_CACHE_NAME = 'dynamic-cache-v1';
 const OFFLINE_FALLBACK_PAGE = '/offline';
 
-// Create mock service worker module
-vi.mock('../src/service-worker.ts', async () => {
-  return {
-    staticAssetsCacheName: STATIC_CACHE_NAME,
-    dynamicCacheName: DYNAMIC_CACHE_NAME,
-    offlineFallbackPage: OFFLINE_FALLBACK_PAGE
-  };
-});
-
+// We now use the global mocks from vitest-mocks.js
 // Mock fetch function
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
-
-// Mock cache APIs
-const mockCache = {
-  put: vi.fn(),
-  match: vi.fn(),
-  delete: vi.fn()
-};
-
-const mockCaches = {
-  open: vi.fn().mockResolvedValue(mockCache),
-  match: vi.fn()
-};
-
-global.caches = mockCaches as any;
 
 describe('Service Worker Offline Functionality', () => {
   // Mock service worker environment

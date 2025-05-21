@@ -1,33 +1,53 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { betsStore, BetStatus, ResolutionType } from './bets';
 import { get } from 'svelte/store';
-import { auth } from './auth';
+import { mockBet } from '$lib/mocks/bet-mocks';
 
-// Mock Supabase client
-vi.mock('../supabase', () => {
-  const mockSupabase = {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    insert: vi.fn().mockReturnThis(),
-    update: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    or: vi.fn().mockReturnThis(),
-    order: vi.fn().mockReturnThis(),
-    channel: vi.fn().mockReturnValue({
-      on: vi.fn().mockReturnThis(),
-      subscribe: vi.fn().mockReturnValue({
-        unsubscribe: vi.fn()
-      })
-    })
+// Define mock types
+interface MockBet {
+  id: string;
+  creator_id: string;
+  opponent_id: string;
+  amount: number;
+  description: string;
+  status: string;
+  is_paid: boolean;
+  resolution_type: string;
+  match_id: string | null;
+  round_id: string | null;
+  tournament_id: string | null;
+  winner_id: string | null;
+  created_at: string;
+  updated_at: string;
+  creator?: {
+    username: string;
   };
-  
-  return { supabase: mockSupabase };
-});
+  opponent?: {
+    username: string;
+  };
+  match?: {
+    id: string;
+    status: string;
+  };
+  round?: {
+    name: string;
+  };
+  tournament?: {
+    name: string;
+  };
+}
+
+interface MockResponse {
+  data: MockBet[];
+  error: null | { message: string };
+}
+
+// No need to mock supabase here - it's already mocked in vitest.setup.js
 
 // Mock auth store
 vi.mock('./auth', () => {
   const get = vi.fn();
-  const subscribe = (callback) => {
+  const subscribe = (callback: (value: any) => void) => {
     callback({ user: { id: 'user1', username: 'testuser' }, loading: false, error: null });
     return () => {};
   };
@@ -41,7 +61,7 @@ vi.mock('./auth', () => {
 });
 
 describe('Bets Store', () => {
-  let mockResponse;
+  let mockResponse: MockResponse;
   
   beforeEach(() => {
     // Reset mock response for each test
@@ -136,7 +156,7 @@ describe('Bets Store', () => {
   
   test('should create a new bet', async () => {
     const { supabase } = require('$lib/supabase');
-    mockResponse = { data: [{ id: 'newbet', ...mockResponse.data[0] }], error: null };
+    mockResponse = { data: [{ ...mockResponse.data[0], id: 'newbet' }], error: null };
     supabase.select.mockImplementation(() => Promise.resolve(mockResponse));
     
     const betData = {

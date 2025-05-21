@@ -2,12 +2,6 @@ import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
 import { offlineStore } from './offline-store';
 import { get } from 'svelte/store';
 
-// Mock IndexedDB
-const mockIndexedDB = {
-  open: vi.fn(),
-  deleteDatabase: vi.fn()
-};
-
 // Mock object store
 const mockObjectStore = {
   put: vi.fn(),
@@ -30,8 +24,6 @@ const mockDB = {
 describe('Offline Store', () => {
   // Setup global mocks
   beforeEach(() => {
-    global.indexedDB = mockIndexedDB as any;
-
     // Mock request events
     const mockRequest = {
       result: mockDB,
@@ -41,7 +33,7 @@ describe('Offline Store', () => {
     };
 
     // Setup mock open function
-    mockIndexedDB.open.mockImplementation(() => {
+    vi.spyOn(global.indexedDB, 'open').mockImplementation(() => {
       setTimeout(() => {
         if (mockRequest.onsuccess) {
           mockRequest.onsuccess({ target: mockRequest } as any);

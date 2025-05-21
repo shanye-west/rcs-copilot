@@ -1,7 +1,18 @@
-import { describe, test, expect, vi } from 'vitest';
+import { describe, test, expect, vi, beforeAll } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { render, fireEvent, screen } from '@testing-library/svelte';
 import Scorecard1v1 from '../components/Scorecard1v1.svelte';
+
+// Mock svelte's mount function
+beforeAll(() => {
+  vi.mock('svelte', async () => {
+    const actual = await vi.importActual('svelte');
+    return {
+      ...actual,
+      mount: vi.fn().mockImplementation(() => ({ destroy: vi.fn() }))
+    };
+  });
+});
 
 describe('Scorecard1v1 Component', () => {
   // Mock data
