@@ -130,7 +130,6 @@
 	// Import new scorecard components
 	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
 	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
-	import { offlineStore } from '$lib/stores/offline-store';
 	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 </script>
 
