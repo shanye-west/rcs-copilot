@@ -14,7 +14,10 @@
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: (playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
+	export let getSyncStatus: (
+		playerId: string,
+		hole: number
+	) => 'pending' | 'synced' | 'failed' | undefined;
 
 	// Helper to get score for a player/hole
 	function getScore(playerId: string, hole: number): number | string {

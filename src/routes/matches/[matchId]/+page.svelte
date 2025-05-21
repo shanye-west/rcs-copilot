@@ -141,47 +141,47 @@
 			getSyncStatus={getSyncStatusHandler}
 		/>
 	{:else if is2v2Scramble}
-		<Scorecard2v2Scramble 
-			{teamAPlayers} 
-			{teamBPlayers} 
-			{scores} 
-			{holes} 
-			{isLocked} 
-			{saveScore} 
-			getSyncStatus={getSyncStatusHandler} 
+		<Scorecard2v2Scramble
+			{teamAPlayers}
+			{teamBPlayers}
+			{scores}
+			{holes}
+			{isLocked}
+			{saveScore}
+			getSyncStatus={getSyncStatusHandler}
 		/>
 	{:else if is2v2BestBall}
-		<Scorecard2v2BestBall 
-			{teamAPlayers} 
-			{teamBPlayers} 
-			{scores} 
-			{holes} 
-			{isLocked} 
-			{saveScore} 
-			getSyncStatus={getSyncStatusHandler} 
+		<Scorecard2v2BestBall
+			{teamAPlayers}
+			{teamBPlayers}
+			{scores}
+			{holes}
+			{isLocked}
+			{saveScore}
+			getSyncStatus={getSyncStatusHandler}
 		/>
 	{:else if is2v2Shamble}
-		<Scorecard2v2Shamble 
-			{teamAPlayers} 
-			{teamBPlayers} 
-			{scores} 
-			{holes} 
-			{isLocked} 
-			{saveScore} 
-			getSyncStatus={getSyncStatusHandler} 
+		<Scorecard2v2Shamble
+			{teamAPlayers}
+			{teamBPlayers}
+			{scores}
+			{holes}
+			{isLocked}
+			{saveScore}
+			getSyncStatus={getSyncStatusHandler}
 		/>
 	{:else if is4v4TeamScramble}
-		<Scorecard4v4TeamScramble 
-			{teamAPlayers} 
-			{teamBPlayers} 
-			{scores} 
-			{holes} 
-			{isLocked} 
-			{saveScore} 
-			getSyncStatus={getSyncStatusHandler} 
+		<Scorecard4v4TeamScramble
+			{teamAPlayers}
+			{teamBPlayers}
+			{scores}
+			{holes}
+			{isLocked}
+			{saveScore}
+			getSyncStatus={getSyncStatusHandler}
 		/>
 	{:else}
-		<div class="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+		<div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
 			<h3 class="font-bold">Match Type Not Implemented</h3>
 			<p>This match type ({matchType?.name || 'Unknown'}) is not yet fully implemented.</p>
 		</div>

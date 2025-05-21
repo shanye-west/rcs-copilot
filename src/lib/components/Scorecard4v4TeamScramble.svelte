@@ -12,17 +12,20 @@
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: (playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
+	export let getSyncStatus: (
+		playerId: string,
+		hole: number
+	) => 'pending' | 'synced' | 'failed' | undefined;
 
 	// Team scores are represented by the first player of each team
 	$: teamALeader = teamAPlayers[0]?.player || null;
 	$: teamBLeader = teamBPlayers[0]?.player || null;
-	
+
 	// Ensure we have valid holes and players arrays
 	$: safeHoles = holes || Array.from({ length: 18 }, (_, i) => i + 1);
 	$: safeTeamAPlayers = teamAPlayers || [];
 	$: safeTeamBPlayers = teamBPlayers || [];
-	
+
 	// References to first players in each team (for scoring)
 	$: teamAPlayer1 = safeTeamAPlayers[0];
 	$: teamBPlayer1 = safeTeamBPlayers[0];
@@ -32,7 +35,7 @@
 		// In 4v4 Team Scramble, we use the first player's score as the team score
 		const leaderId = players[0]?.player?.id;
 		if (!leaderId) return '';
-		
+
 		const score = calculateGrossScore(scores, leaderId, hole);
 		return score !== undefined ? score : '';
 	}
@@ -42,7 +45,7 @@
 		if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
 		return teamAPlayer1.scores[hole] || '';
 	}
-	
+
 	function getTeamBScore(hole: number): string | number {
 		if (!teamBPlayer1 || !teamBPlayer1.scores) return '';
 		return teamBPlayer1.scores[hole] || '';
@@ -54,7 +57,7 @@
 		const teamBScore = calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole);
 		return determineWinningTeam(teamAScore, teamBScore);
 	}
-	
+
 	// Handle score change
 	function handleScoreChange(team: string, hole: number, e: Event) {
 		if (isLocked) return;
@@ -64,12 +67,12 @@
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
 			const playerToUpdate = team === 'A' ? teamAPlayer1 : teamBPlayer1;
 			if (!playerToUpdate) return;
-			
+
 			// Update the player's score
 			if (playerToUpdate.scores) {
 				playerToUpdate.scores[hole] = value;
 			}
-			
+
 			// Save to the backend/store
 			if (value === '') {
 				saveScore(playerToUpdate.player_id, hole, null);
@@ -83,7 +86,8 @@
 <div class="mb-4">
 	<h2 class="text-lg font-bold">4v4 Team Scramble Scorecard</h2>
 	<p class="text-sm text-gray-600">
-		Each team has four players who select the best shot on each stroke, then all players play from that position.
+		Each team has four players who select the best shot on each stroke, then all players play from
+		that position.
 	</p>
 	<table class="min-w-full border-collapse text-sm">
 		<thead>
@@ -92,13 +96,13 @@
 				<th class="border bg-blue-50 px-2 py-1">
 					Team A
 					<div class="text-xs text-gray-500">
-						{safeTeamAPlayers.map(p => p.player?.username || 'Player').join(', ')}
+						{safeTeamAPlayers.map((p) => p.player?.username || 'Player').join(', ')}
 					</div>
 				</th>
 				<th class="border bg-red-50 px-2 py-1">
 					Team B
 					<div class="text-xs text-gray-500">
-						{safeTeamBPlayers.map(p => p.player?.username || 'Player').join(', ')}
+						{safeTeamBPlayers.map((p) => p.player?.username || 'Player').join(', ')}
 					</div>
 				</th>
 			</tr>
@@ -107,7 +111,7 @@
 			{#each safeHoles as hole (hole)}
 				<tr class={getWinningTeam(hole) ? 'bg-gray-50' : ''}>
 					<td class="border px-2 py-1 font-bold">{hole}</td>
-					
+
 					<!-- Team A Score Cell -->
 					<td class="border px-2 py-1 text-center" class:bg-blue-100={getWinningTeam(hole) === 'A'}>
 						{#if !isLocked && teamALeader}
@@ -140,7 +144,7 @@
 							{getTeamScore(teamAPlayers, hole)}
 						{/if}
 					</td>
-					
+
 					<!-- Team B Score Cell -->
 					<td class="border px-2 py-1 text-center" class:bg-red-100={getWinningTeam(hole) === 'B'}>
 						{#if !isLocked && teamBLeader}

@@ -25,7 +25,10 @@
 	export let holes: number[] = [];
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: (playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
+	export let getSyncStatus: (
+		playerId: string | undefined,
+		hole: number
+	) => 'pending' | 'synced' | 'failed' | undefined;
 
 	// Defensive: make sure arrays are never undefined and players have scores
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -53,7 +56,7 @@
 			}
 		});
 	});
-	
+
 	// Make sure players exist
 	$: teamAPlayer1 = safeTeamAPlayers[0] || null;
 	$: teamAPlayer2 = safeTeamAPlayers[1] || null;
@@ -82,7 +85,7 @@
 		const numB = Number(scoreB);
 
 		if (isNaN(numA) || isNaN(numB)) return null;
-		
+
 		const result = determineWinningTeam(numA, numB);
 		if (result === null) return null;
 		return result;
@@ -97,12 +100,12 @@
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
 			const playerToUpdate = team === 'A' ? teamAPlayer1 : teamBPlayer1;
 			if (!playerToUpdate) return;
-			
+
 			// Update the player's score
 			if (playerToUpdate.scores) {
 				playerToUpdate.scores[hole] = value;
 			}
-			
+
 			// Save to the backend/store
 			if (value === '') {
 				saveScore(playerToUpdate.player_id, hole, null);

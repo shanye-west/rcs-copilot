@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { 
-		calculateNetScore, 
-		calculateHandicapDots, 
-		calculateMatchStatus, 
-		type Player, 
-		type Score 
+	import {
+		calculateNetScore,
+		calculateHandicapDots,
+		calculateMatchStatus,
+		type Player,
+		type Score
 	} from '$lib/utils/scoring';
 
 	export let players: Player[]; // [playerA, playerB]
@@ -12,7 +12,10 @@
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: (playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
+	export let getSyncStatus: (
+		playerId: string,
+		hole: number
+	) => 'pending' | 'synced' | 'failed' | undefined;
 
 	// Helper to get score for a player/hole
 	function getScore(playerId: string, hole: number): number | string {
@@ -65,11 +68,16 @@
 									max="20"
 									class="w-12 rounded border p-1 text-center"
 									value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
-									on:input={e => {
+									on:input={(e) => {
 										const val = e.target.value;
 										if (p.scores) p.scores[hole] = val;
 									}}
-									on:change={() => saveScore(p.player.id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
+									on:change={() =>
+										saveScore(
+											p.player.id,
+											hole,
+											p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null
+										)}
 								/>
 								<!-- Sync status indicator -->
 								{#if typeof getSyncStatus === 'function'}
