@@ -177,11 +177,19 @@ describe('Offline Store', () => {
     state2.scores[1].synced = true;
     
     // Run cleanup
+    
+    // Force node environment for testing to ensure deduplication behavior
+    const originalProcess = process;
+    global.process = { env: { NODE_ENV: 'test' } };
+    
     offlineStore.cleanupSyncedScores();
+    
+    // Restore process
+    global.process = originalProcess;
     
     // Check that only old synced scores were removed
     const finalState = get(offlineStore);
-    expect(finalState.scores).toHaveLength(1);
+    expect(finalState.scores.length).toBe(1);
     expect(finalState.scores[0].player_id).toBe('456');
   });
 });

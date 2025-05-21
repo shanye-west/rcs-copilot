@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { getWinningTeam as determineWinningTeam } from '$lib/utils/scoring';
 
 	// Define interfaces for type safety
 	interface Player {
@@ -52,6 +53,7 @@
 			}
 		});
 	});
+	
 	// Make sure players exist
 	$: teamAPlayer1 = safeTeamAPlayers[0] || null;
 	$: teamAPlayer2 = safeTeamAPlayers[1] || null;
@@ -74,15 +76,16 @@
 		const scoreA = getTeamAScore(hole);
 		const scoreB = getTeamBScore(hole);
 
-		if (!scoreA || !scoreB) return null;
+		if (scoreA === '' || scoreB === '') return null;
 
 		const numA = Number(scoreA);
 		const numB = Number(scoreB);
 
 		if (isNaN(numA) || isNaN(numB)) return null;
-		if (numA < numB) return 'A';
-		if (numB < numA) return 'B';
-		return 'tie';
+		
+		const result = determineWinningTeam(numA, numB);
+		if (result === null) return null;
+		return result;
 	}
 
 	// Handle score change
@@ -92,48 +95,19 @@
 		const value = (e.target as HTMLInputElement).value;
 		// Allow empty string or a number between 1-12
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
-			if (team === 'A') {
-				// Create a new array with the updated player
-				teamAPlayers = teamAPlayers.map((player) => {
-					if (player === teamAPlayers[0]) {
-						// Create new scores object if it doesn't exist
-						const updatedScores = { ...(player.scores || {}) };
-						updatedScores[hole] = value;
-
-						// Return updated player with new scores
-						return {
-							...player,
-							scores: updatedScores
-						};
-					}
-					return player;
-				});
-
-				// Save it outside of the reactive assignment
-				if (teamAPlayers[0]?.player_id) {
-					saveScore(teamAPlayers[0].player_id, hole, value === '' ? null : parseInt(value));
-				}
-			} else if (team === 'B') {
-				// Create a new array with the updated player
-				teamBPlayers = teamBPlayers.map((player) => {
-					if (player === teamBPlayers[0]) {
-						// Create new scores object if it doesn't exist
-						const updatedScores = { ...(player.scores || {}) };
-						updatedScores[hole] = value;
-
-						// Return updated player with new scores
-						return {
-							...player,
-							scores: updatedScores
-						};
-					}
-					return player;
-				});
-
-				// Save it outside of the reactive assignment
-				if (teamBPlayers[0]?.player_id) {
-					saveScore(teamBPlayers[0].player_id, hole, value === '' ? null : parseInt(value));
-				}
+			const playerToUpdate = team === 'A' ? teamAPlayer1 : teamBPlayer1;
+			if (!playerToUpdate) return;
+			
+			// Update the player's score
+			if (playerToUpdate.scores) {
+				playerToUpdate.scores[hole] = value;
+			}
+			
+			// Save to the backend/store
+			if (value === '') {
+				saveScore(playerToUpdate.player_id, hole, null);
+			} else {
+				saveScore(playerToUpdate.player_id, hole, parseInt(value));
 			}
 		}
 	}

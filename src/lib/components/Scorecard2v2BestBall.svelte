@@ -1,96 +1,43 @@
 <script lang="ts">
-	// Define interfaces for type safety
-	interface Player {
-		player: {
-			id: string;
-			username: string;
-			handicap?: number;
-			handicap_strokes?: number[];
-			hole_stroke_indexes?: number[];
-		};
-		player_id: string;
-		team_id: string;
-		scores?: Record<number, number | string>;
-		username?: string;
-	}
-
-	interface Score {
-		player_id: string;
-		hole_number: number;
-		net_score?: number;
-		gross_score?: number;
-	}
+	import {
+		calculateNetScore,
+		calculateHandicapDots,
+		calculateBestNetScore,
+		getWinningTeam as determineWinningTeam,
+		type Player,
+		type Score
+	} from '$lib/utils/scoring';
 
 	export let teamAPlayers: Player[];
 	export let teamBPlayers: Player[];
 	export let scores: Score[];
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
-	export let saveScore: (playerId: string, hole: number, value: number) => void;
+	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
+	export let getSyncStatus: (playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
 
 	// Helper to get score for a player/hole
 	function getScore(playerId: string, hole: number): number | string {
-		return scores.find((s) => s.player_id === playerId && s.hole_number === hole)?.net_score ?? '';
+		const score = calculateNetScore(scores, playerId, hole);
+		return score !== undefined ? score : '';
 	}
 
 	// Helper to get handicap dots for a player/hole
 	function getDots(player: Player['player'], hole: number): string {
-		// Assumptions:
-		// - player.handicap: integer, total course handicap for 18 holes
-		// - player.handicap_strokes: optional array of 18 numbers (1 if gets stroke on hole, 0 otherwise)
-		// - holes: array of 1-18
-		// - player.hole_stroke_indexes: optional array of 18 numbers (stroke index for each hole, 1=hardest)
-
-		// If player.handicap_strokes exists, use it
-		if (player.handicap_strokes && player.handicap_strokes.length === 18) {
-			return player.handicap_strokes[hole - 1] > 0
-				? '•'.repeat(player.handicap_strokes[hole - 1])
-				: '';
-		}
-
-		// Otherwise, calculate dots based on handicap and stroke index
-		const handicap = player.handicap || 0;
-		if (handicap === 0) return '';
-
-		// If player.hole_stroke_indexes exists, use it, else assume holes are ordered by difficulty
-		let strokeIndexes =
-			player.hole_stroke_indexes && player.hole_stroke_indexes.length === 18
-				? player.hole_stroke_indexes
-				: Array.from({ length: 18 }, (_, i) => i + 1); // 1-18
-
-		// Find the stroke index for this hole
-		const thisHoleStrokeIndex = strokeIndexes[hole - 1];
-
-		// Calculate how many strokes (dots) this player gets on this hole
-		let dots = 0;
-		if (handicap >= 18) {
-			dots = 1;
-			if (handicap - 18 >= 18 - thisHoleStrokeIndex + 1) {
-				dots = 2;
-			} else if (handicap - 18 > 0 && thisHoleStrokeIndex <= handicap - 18) {
-				dots = 2;
-			}
-		} else if (handicap > 0 && thisHoleStrokeIndex <= handicap) {
-			dots = 1;
-		}
-		return dots > 0 ? '•'.repeat(dots) : '';
+		return calculateHandicapDots(player, hole);
 	}
 
 	// For each hole, get the best net score for each team
 	function getBestNetScore(players: Player[], hole: number): number | string {
-		const netScores = players
-			.filter((p) => p && p.player && p.player.id)
-			.map((p) => getScore(p.player.id, hole))
-			.filter(Boolean);
-		if (netScores.length === 0) return '';
+		const bestScore = calculateBestNetScore(players, scores, hole);
+		return bestScore !== undefined ? bestScore : '';
+	}
 
-		// Filter out any string values and convert all to numbers
-		const numericScores = netScores
-			.filter((score) => typeof score === 'number')
-			.map((score) => Number(score));
-
-		if (numericScores.length === 0) return '';
-		return Math.min(...numericScores);
+	// Determine which team is winning on a hole
+	function getWinningTeam(hole: number): 'A' | 'B' | 'tie' | null {
+		const teamAScore = calculateBestNetScore(teamAPlayers, scores, hole);
+		const teamBScore = calculateBestNetScore(teamBPlayers, scores, hole);
+		return determineWinningTeam(teamAScore, teamBScore);
 	}
 </script>
 
