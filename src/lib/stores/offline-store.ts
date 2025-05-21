@@ -56,16 +56,33 @@ function createOfflineStore() {
     // Mark a score as synced
     markSynced: (player_id: string, hole_number: number, match_id: string) => {
       update(state => {
-        const updatedScores = state.scores.map(score => {
-          if (score.player_id === player_id && 
-              score.hole_number === hole_number && 
+        let found = false;
+        let updatedScores = state.scores.map(score => {
+          if (!found && score.player_id === player_id && 
+              score.hole_number === hole_number &&
               score.match_id === match_id && 
               !score.synced) {
+            found = true;
             return { ...score, synced: true };
           }
           return score;
         });
-        
+        // After marking, keep only the first synced instance for this key, remove all others
+        let kept = false;
+        updatedScores = updatedScores.filter(score => {
+          if (
+            score.player_id === player_id &&
+            score.hole_number === hole_number &&
+            score.match_id === match_id
+          ) {
+            if (!kept && score.synced) {
+              kept = true;
+              return true;
+            }
+            return false;
+          }
+          return true;
+        });
         return {
           ...state,
           scores: updatedScores,
@@ -92,13 +109,20 @@ function createOfflineStore() {
     // Clear all synced scores that are older than 7 days
     cleanupSyncedScores: () => {
       const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      
       update(state => {
-        const filteredScores = state.scores.filter(score => {
-          // Keep unsynced scores or recent synced scores
+        // Remove old synced scores
+        let filteredScores = state.scores.filter(score => {
           return !score.synced || score.timestamp > sevenDaysAgo;
         });
-        
+        // Deduplicate: for each key, keep only the most recent score (regardless of synced)
+        const latestByKey: Record<string, typeof filteredScores[0]> = {};
+        for (const score of filteredScores) {
+          const key = `${score.player_id}-${score.hole_number}-${score.match_id}`;
+          if (!latestByKey[key] || score.timestamp > latestByKey[key].timestamp) {
+            latestByKey[key] = score;
+          }
+        }
+        filteredScores = Object.values(latestByKey);
         return {
           ...state,
           scores: filteredScores
@@ -146,16 +170,14 @@ export const offlineStore = createOfflineStore();
 // IndexedDB functions
 async function saveToIndexedDB() {
   if (!browser) return;
-  
-  let state: OfflineState;
+  let state: OfflineState | undefined = undefined;
   offlineStore.subscribe(s => state = s)();
-  
+  if (!state) throw new Error('State not available');
   try {
     const db = await openDatabase();
     const transaction = db.transaction(['offlineData'], 'readwrite');
     const store = transaction.objectStore('offlineData');
-    
-    await store.put({ id: 'offlineState', ...state });
+    await store.put({ id: 'offlineState', ...(state as object) });
   } catch (error) {
     console.error('Failed to save to IndexedDB:', error);
   }
@@ -163,14 +185,19 @@ async function saveToIndexedDB() {
 
 async function loadFromIndexedDB(): Promise<OfflineState | null> {
   if (!browser) return null;
-  
   try {
     const db = await openDatabase();
     const transaction = db.transaction(['offlineData'], 'readonly');
     const store = transaction.objectStore('offlineData');
-    
-    const data = await store.get('offlineState');
-    return data ? data as OfflineState : null;
+    return new Promise((resolve, reject) => {
+      const request = store.get('offlineState');
+      request.onsuccess = () => {
+        resolve(request.result ? (request.result as OfflineState) : null);
+      };
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
   } catch (error) {
     console.error('Failed to load from IndexedDB:', error);
     return null;
@@ -200,11 +227,10 @@ async function openDatabase(): Promise<IDBDatabase> {
 
 // Function to sync data with the server when online
 async function syncWithServer() {
-  // Get unsynced scores
-  let state: OfflineState;
+  let state: OfflineState | undefined = undefined;
   offlineStore.subscribe(s => state = s)();
-  
-  const unsyncedScores = state.scores.filter(score => !score.synced);
+  if (!state) return;
+  const unsyncedScores = (state as OfflineState).scores.filter((score: any) => !score.synced);
   if (unsyncedScores.length === 0) return;
 
   // TODO: Implement the actual server sync logic when we have the API endpoints
