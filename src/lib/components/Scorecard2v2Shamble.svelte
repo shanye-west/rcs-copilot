@@ -64,6 +64,36 @@
 	$: teamAPlayer1 = safeTeamAPlayers[0] || null;
 	$: teamBPlayer1 = safeTeamBPlayers[0] || null;
 
+	// Calculate match-play status
+	function calculateTeamMatchStatus() {
+		if (!teamAPlayer1 || !teamBPlayer1 || !teamAPlayer1.scores || !teamBPlayer1.scores) return 'AS'; // Default to All Square
+
+		let teamAWins = 0;
+		let teamBWins = 0;
+
+		for (const hole of safeHoles) {
+			const scoreA = getTeamAScore(hole);
+			const scoreB = getTeamBScore(hole);
+
+			if (scoreA === '' || scoreB === '') continue; // Skip holes not played by both
+
+			const numA = Number(scoreA);
+			const numB = Number(scoreB);
+
+			if (isNaN(numA) || isNaN(numB)) continue;
+
+			if (numA < numB) {
+				teamAWins++;
+			} else if (numB < numA) {
+				teamBWins++;
+			}
+		}
+
+		const diff = Math.abs(teamAWins - teamBWins);
+		if (diff === 0) return 'AS';
+		return teamAWins > teamBWins ? `A ${diff}UP` : `B ${diff}UP`;
+	}
+
 	// Safe score getters
 	function getTeamAScore(hole: number): string | number {
 		if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
@@ -86,7 +116,7 @@
 		const numB = Number(scoreB);
 
 		if (isNaN(numA) || isNaN(numB)) return null;
-		
+
 		const result = determineWinningTeam(numA, numB);
 		if (result === null) return null;
 		return result;
@@ -119,6 +149,7 @@
 
 <div class="scoreboard overflow-x-auto">
 	<h2 class="mb-2 text-lg font-bold">2v2 Team Shamble Scorecard</h2>
+	<div class="mb-2 text-gray-600">Status: {calculateTeamMatchStatus()}</div>
 	<table class="min-w-full border-collapse">
 		<thead>
 			<tr>
@@ -133,14 +164,10 @@
 			<tr class="bg-blue-50">
 				<td class="sticky left-0 border bg-blue-50 px-2 py-1 font-semibold">
 					Team A
-					{#if teamAPlayer1}
-						<div class="text-xs">
-							{teamAPlayer1.username || teamAPlayer1.player?.username || 'Player 1'}
-							{#if safeTeamAPlayers[1]}
-								& {safeTeamAPlayers[1].username || safeTeamAPlayers[1].player?.username || 'Player 2'}
-							{/if}
-						</div>
-					{/if}
+					<div class="text-xs">
+						{#if safeTeamAPlayers[0]}<span>{safeTeamAPlayers[0].username || safeTeamAPlayers[0].player?.username || 'Player 1'}</span>{/if}
+						{#if safeTeamAPlayers[1]}& <span>{safeTeamAPlayers[1].username || safeTeamAPlayers[1].player?.username || 'Player 2'}</span>{/if}
+					</div>
 				</td>
 				{#each safeHoles as hole (hole)}
 					<td
@@ -149,7 +176,9 @@
 						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
 					>
 						<input
-							type="text"
+							type="number"
+							min="1"
+							max="20"
 							class="w-full bg-transparent text-center"
 							value={getTeamAScore(hole)}
 							disabled={isLocked}
@@ -173,14 +202,10 @@
 			<tr class="bg-red-50">
 				<td class="sticky left-0 border bg-red-50 px-2 py-1 font-semibold">
 					Team B
-					{#if teamBPlayer1}
-						<div class="text-xs">
-							{teamBPlayer1.username || teamBPlayer1.player?.username || 'Player 1'}
-							{#if safeTeamBPlayers[1]}
-								& {safeTeamBPlayers[1].username || safeTeamBPlayers[1].player?.username || 'Player 2'}
-							{/if}
-						</div>
-					{/if}
+					<div class="text-xs">
+						{#if safeTeamBPlayers[0]}<span>{safeTeamBPlayers[0].username || safeTeamBPlayers[0].player?.username || 'Player 1'}</span>{/if}
+						{#if safeTeamBPlayers[1]}& <span>{safeTeamBPlayers[1].username || safeTeamBPlayers[1].player?.username || 'Player 2'}</span>{/if}
+					</div>
 				</td>
 				{#each safeHoles as hole (hole)}
 					<td
@@ -189,7 +214,9 @@
 						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
 					>
 						<input
-							type="text"
+							type="number"
+							min="1"
+							max="20"
 							class="w-full bg-transparent text-center"
 							value={getTeamBScore(hole)}
 							disabled={isLocked}
@@ -208,150 +235,6 @@
 					</td>
 				{/each}
 			</tr>
-		</tbody>
-	</table>
-</div>
-
-		const value = (e.target as HTMLInputElement).value;
-		
-		// Allow empty string or a number between 1-12
-		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
-			// Get the team array based on teamId
-			const teamArray = teamId === 'A' ? teamAPlayers : teamBPlayers;
-			
-			// Get the player (safely)
-			if (teamArray.length > playerIndex) {
-				const player = teamArray[playerIndex];
-				if (player) {
-					// Create a new array with updated player
-					if (teamId === 'A') {
-						teamAPlayers = teamAPlayers.map((p, idx) => {
-							if (idx === playerIndex) {
-								// Create new scores object if it doesn't exist
-								const updatedScores = { ...(p.scores || {}) };
-								updatedScores[hole] = value;
-								
-								// Return updated player with new scores
-								return {
-									...p,
-									scores: updatedScores
-								};
-							}
-							return p;
-						});
-					} else {
-						teamBPlayers = teamBPlayers.map((p, idx) => {
-							if (idx === playerIndex) {
-								// Create new scores object if it doesn't exist
-								const updatedScores = { ...(p.scores || {}) };
-								updatedScores[hole] = value;
-								
-								// Return updated player with new scores
-								return {
-									...p,
-									scores: updatedScores
-								};
-							}
-							return p;
-						});
-					}
-					
-					// Save score to database
-					const playerId = player.player_id;
-					if (playerId) {
-						saveScore(playerId, hole, value === '' ? null : parseInt(value));
-					}
-				}
-			}
-		}
-	}
-</script>
-
-<div class="scoreboard overflow-x-auto">
-	<div class="mb-4">
-		<h2 class="text-lg font-bold">2v2 Team Shamble Scorecard</h2>
-		<p class="text-sm text-gray-500">
-			Players select the best drive, then play their own ball for the remainder of the hole.
-		</p>
-	</div>
-	
-	<table class="min-w-full border-collapse">
-		<thead>
-			<tr>
-				<th class="sticky left-0 border bg-white px-2 py-1">Player</th>
-				{#each safeHoles as hole (hole)}
-					<th class="w-12 border px-2 py-1">{hole}</th>
-				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			<!-- Team A Players -->
-			{#each safeTeamAPlayers as player, index (player.player_id)}
-				<tr class="bg-blue-50">
-					<td class="sticky left-0 border bg-blue-50 px-2 py-1 font-semibold">
-						<span class="text-blue-800">A{index + 1}:</span> {player.username || 'Player'}
-					</td>
-					{#each safeHoles as hole (hole)}
-						<td
-							class="border px-1 py-1 text-center"
-							class:bg-green-100={getWinningTeam(hole) === 'A'}
-							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
-						>
-							<input
-								type="text"
-								class="w-full bg-transparent text-center"
-								value={getPlayerScore(player, hole)}
-								disabled={isLocked}
-								on:input={(e) => handleScoreChange('A', index, hole, e)}
-							/>
-							<!-- Sync status indicator -->
-							{#if typeof getSyncStatus === 'function'}
-								{#if getSyncStatus(player.player_id, hole) === 'pending'}
-									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'synced'}
-									<span title="Synced" class="ml-1 text-green-600">✔️</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'failed'}
-									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
-								{/if}
-							{/if}
-						</td>
-					{/each}
-				</tr>
-			{/each}
-
-			<!-- Team B Players -->
-			{#each safeTeamBPlayers as player, index (player.player_id)}
-				<tr class="bg-green-50">
-					<td class="sticky left-0 border bg-green-50 px-2 py-1 font-semibold">
-						<span class="text-green-800">B{index + 1}:</span> {player.username || 'Player'}
-					</td>
-					{#each safeHoles as hole (hole)}
-						<td
-							class="border px-1 py-1 text-center"
-							class:bg-green-100={getWinningTeam(hole) === 'B'}
-							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
-						>
-							<input
-								type="text"
-								class="w-full bg-transparent text-center"
-								value={getPlayerScore(player, hole)}
-								disabled={isLocked}
-								on:input={(e) => handleScoreChange('B', index, hole, e)}
-							/>
-							<!-- Sync status indicator -->
-							{#if typeof getSyncStatus === 'function'}
-								{#if getSyncStatus(player.player_id, hole) === 'pending'}
-									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'synced'}
-									<span title="Synced" class="ml-1 text-green-600">✔️</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'failed'}
-									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
-								{/if}
-							{/if}
-						</td>
-					{/each}
-				</tr>
-			{/each}
 		</tbody>
 	</table>
 </div>

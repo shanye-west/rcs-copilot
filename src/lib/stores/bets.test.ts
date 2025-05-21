@@ -1,4 +1,5 @@
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
+import * as SupabaseMock from '$lib/supabase'; // Added for alternative mock access
 import { betsStore, BetStatus, ResolutionType } from './bets';
 import { get } from 'svelte/store';
 import { mockBet } from '$lib/mocks/bet-mocks';
@@ -82,7 +83,7 @@ vi.mock('./auth', () => {
 describe('Bets Store', () => {
 	let mockResponse: MockResponse;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		// Reset mock response for each test
 		mockResponse = {
 			data: [
@@ -109,7 +110,7 @@ describe('Bets Store', () => {
 		};
 
 		// Setup mock response
-		const supabase = require('../mocks/__mocks__/supabase').supabase;
+		const supabase = SupabaseMock.supabase; // Use imported mock
 		supabase.from.mockImplementation(() => supabase);
 		supabase.select.mockImplementation(() => supabase);
 		supabase.insert.mockImplementation(() => supabase);
@@ -147,7 +148,8 @@ describe('Bets Store', () => {
 
 	test('should handle errors when fetching bets', async () => {
 		const errorMessage = 'Failed to fetch bets';
-		const { supabase } = require('$lib/supabase');
+		// const { supabase } = require('$lib/supabase'); // Original line, ensure this also uses the SupabaseMock if needed
+		const supabase = SupabaseMock.supabase; // Using the imported mock
 		supabase.order.mockImplementation(() =>
 			Promise.resolve({ data: null, error: { message: errorMessage } })
 		);
@@ -175,7 +177,8 @@ describe('Bets Store', () => {
 			resolution_type: ResolutionType.CUSTOM
 		};
 
-		const { supabase } = require('$lib/supabase');
+		// const { supabase } = require('$lib/supabase'); // Original line
+		const supabase = SupabaseMock.supabase; // Using the imported mock
 		supabase.insert.mockImplementation(() =>
 			Promise.resolve({
 				data: [{ ...newBet, id: 'new-bet-1' }],
@@ -192,7 +195,8 @@ describe('Bets Store', () => {
 		const betId = 'bet1';
 		const status = BetStatus.ACCEPTED;
 
-		const { supabase } = require('$lib/supabase');
+		// const { supabase } = require('$lib/supabase'); // Original line
+		const supabase = SupabaseMock.supabase; // Using the imported mock
 		supabase.eq.mockImplementation(() =>
 			Promise.resolve({
 				data: [{ id: betId, status }],

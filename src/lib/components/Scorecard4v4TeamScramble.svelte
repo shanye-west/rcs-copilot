@@ -21,6 +21,28 @@
 	$: teamALeader = teamAPlayers[0]?.player || null;
 	$: teamBLeader = teamBPlayers[0]?.player || null;
 
+	// Calculate match-play status
+	function calculateTeamMatchStatus() {
+		if (!teamALeader || !teamBLeader) return 'AS';
+
+		let teamAScoreTotal = 0;
+		let teamBScoreTotal = 0;
+
+		// This is a simplified status for scramble, just comparing total scores for now
+		// A more accurate match play status would compare hole by hole wins.
+		for (const hole of safeHoles) {
+			const scoreA = getTeamScore(teamAPlayers, hole);
+			const scoreB = getTeamScore(teamBPlayers, hole);
+
+			if (typeof scoreA === 'number') teamAScoreTotal += scoreA;
+			if (typeof scoreB === 'number') teamBScoreTotal += scoreB;
+		}
+
+		if (teamAScoreTotal < teamBScoreTotal) return 'A Up'; // Simplified
+		if (teamBScoreTotal < teamAScoreTotal) return 'B Up'; // Simplified
+		return 'AS';
+	}
+
 	// Ensure we have valid holes and players arrays
 	$: safeHoles = holes || Array.from({ length: 18 }, (_, i) => i + 1);
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -89,6 +111,7 @@
 		Each team has four players who select the best shot on each stroke, then all players play from
 		that position.
 	</p>
+	<div class="mb-2 text-gray-600">Status: {calculateTeamMatchStatus()}</div>
 	<table class="min-w-full border-collapse text-sm">
 		<thead>
 			<tr>
@@ -96,13 +119,13 @@
 				<th class="border bg-blue-50 px-2 py-1">
 					Team A
 					<div class="text-xs text-gray-500">
-						{safeTeamAPlayers.map((p) => p.player?.username || 'Player').join(', ')}
+						{#each safeTeamAPlayers as p, i}<span>{p.player?.username || 'Player'}</span>{#if i < safeTeamAPlayers.length - 1},&nbsp;{/if}{/each}
 					</div>
 				</th>
 				<th class="border bg-red-50 px-2 py-1">
 					Team B
 					<div class="text-xs text-gray-500">
-						{safeTeamBPlayers.map((p) => p.player?.username || 'Player').join(', ')}
+						{#each safeTeamBPlayers as p, i}<span>{p.player?.username || 'Player'}</span>{#if i < safeTeamBPlayers.length - 1},&nbsp;{/if}{/each}
 					</div>
 				</th>
 			</tr>
