@@ -16,7 +16,6 @@
   const matchType = data.matchType || {};
   const matchPlayers = data.matchPlayers || [];
   const scores = data.scores || [];
-  const debugInfo = data.debugInfo || {};
   
   // Get raw matchPlayers data and find unique team IDs
   const uniqueTeamIds = [...new Set(matchPlayers.map(mp => mp.team_id))];
@@ -96,7 +95,6 @@
 </script>
 
 <section class="max-w-3xl mx-auto p-4">
-  <DebugPanel {matchType} {teamAPlayers} {teamBPlayers} {matchPlayers} {match} {debugInfo} />
   <h1 class="text-2xl font-bold mb-2">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
   <div class="mb-2 text-gray-600">Match Type: {matchType?.name || 'Unknown'}</div>
   <div class="mb-6 text-gray-500">Status: {match.status || 'Unknown'}</div>
