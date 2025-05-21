@@ -62,7 +62,7 @@
 		if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
 		return teamAPlayer1.scores[hole] || '';
 	}
-	
+
 	function getTeamBScore(hole: number): string | number {
 		if (!teamBPlayer1 || !teamBPlayer1.scores) return '';
 		return teamBPlayer1.scores[hole] || '';
@@ -82,7 +82,7 @@
 		if (numA < numB) return 'A';
 		if (numB < numA) return 'B';
 		return 'tie';
-	};
+	}
 
 	// Handle score change
 	function handleScoreChange(team: string, hole: number, e: Event) {
@@ -93,12 +93,12 @@
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
 			if (team === 'A') {
 				// Create a new array with the updated player
-				teamAPlayers = teamAPlayers.map(player => {
+				teamAPlayers = teamAPlayers.map((player) => {
 					if (player === teamAPlayers[0]) {
 						// Create new scores object if it doesn't exist
 						const updatedScores = { ...(player.scores || {}) };
 						updatedScores[hole] = value;
-						
+
 						// Return updated player with new scores
 						return {
 							...player,
@@ -107,23 +107,19 @@
 					}
 					return player;
 				});
-				
+
 				// Save it outside of the reactive assignment
 				if (teamAPlayers[0]?.player_id) {
-					saveScore(
-						teamAPlayers[0].player_id, 
-						hole, 
-						value === '' ? null : parseInt(value)
-					);
+					saveScore(teamAPlayers[0].player_id, hole, value === '' ? null : parseInt(value));
 				}
 			} else if (team === 'B') {
 				// Create a new array with the updated player
-				teamBPlayers = teamBPlayers.map(player => {
+				teamBPlayers = teamBPlayers.map((player) => {
 					if (player === teamBPlayers[0]) {
 						// Create new scores object if it doesn't exist
 						const updatedScores = { ...(player.scores || {}) };
 						updatedScores[hole] = value;
-						
+
 						// Return updated player with new scores
 						return {
 							...player,
@@ -132,14 +128,10 @@
 					}
 					return player;
 				});
-				
+
 				// Save it outside of the reactive assignment
 				if (teamBPlayers[0]?.player_id) {
-					saveScore(
-						teamBPlayers[0].player_id, 
-						hole, 
-						value === '' ? null : parseInt(value)
-					);
+					saveScore(teamBPlayers[0].player_id, hole, value === '' ? null : parseInt(value));
 				}
 			}
 		}

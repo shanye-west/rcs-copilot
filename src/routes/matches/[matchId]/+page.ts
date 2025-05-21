@@ -30,7 +30,7 @@ export const load = async ({ params }) => {
 		.from('match_players')
 		.select('*')
 		.eq('match_id', matchId);
-		
+
 	if (matchPlayersError) {
 		console.error('Error fetching match players:', matchPlayersError);
 	}

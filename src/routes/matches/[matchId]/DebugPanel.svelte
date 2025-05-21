@@ -52,7 +52,7 @@
 		fullName: string;
 		isAdmin: boolean;
 	}
-	
+
 	let authState: { user: User | null; loading: boolean; error: string | null };
 	auth.subscribe((state) => {
 		authState = state;
