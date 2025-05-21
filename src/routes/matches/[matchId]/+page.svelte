@@ -1,136 +1,123 @@
-<script lang="ts">
-  import { supabase } from '$lib/supabase';
+<script lang="ts">  import { supabase } from '$lib/supabase';
   import { onMount } from 'svelte';
-  import { page } from '$app/stores';
   import { auth } from '$lib/stores/auth';
   import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
   import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
   import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
 
-  // Subscribe to auth store
-  let authState: { user: any | null; loading: boolean; error: string | null };
-  auth.subscribe(state => {
-    authState = state;
-  });
+	// Subscribe to auth store
+	let authState: { user: any | null; loading: boolean; error: string | null };
+	auth.subscribe((state) => {
+		authState = state;
+	});
 
-  export let data;
-  
-  // Defensive destructuring - only get what we know exists in data
-  const match = data.match || {};
-  const teams = data.teams || [];
-  const matchType = data.matchType || {};
-  const matchPlayers = data.matchPlayers || [];
-  const scores = data.scores || [];
-  
-  // Get raw matchPlayers data and find unique team IDs
-  const uniqueTeamIds = [...new Set(matchPlayers.map(mp => mp.team_id))];
-  
-  // Filter players by team_id - using the first two unique team IDs
-  let teamAPlayers = [];
-  let teamBPlayers = [];
-  
-  if (uniqueTeamIds.length >= 1) {
-    const teamAId = uniqueTeamIds[0];
-    teamAPlayers = matchPlayers.filter(mp => mp.team_id === teamAId);
-    
-    if (uniqueTeamIds.length >= 2) {
-      const teamBId = uniqueTeamIds[1];
-      teamBPlayers = matchPlayers.filter(mp => mp.team_id === teamBId);
-    }
-  }
-  
-  // Get team objects from player team_id values
-  const teamA = uniqueTeamIds.length >= 1 ? 
-    teams.find(t => t.id === uniqueTeamIds[0]) : null;
-  const teamB = uniqueTeamIds.length >= 2 ? 
-    teams.find(t => t.id === uniqueTeamIds[1]) : null;
+	export let data;
 
-  // For now, just show 18 holes
-  const holes = Array.from({ length: 18 }, (_, i) => i + 1);
+	// Defensive destructuring - only get what we know exists in data
+	const match = data.match || {};
+	const teams = data.teams || [];
+	const matchType = data.matchType || {};
+	const matchPlayers = data.matchPlayers || [];
+	const scores = data.scores || [];
 
-  // Helper to get score for a player/team/hole
-  function getScore(playerId: string, hole: number) {
-    return scores.find(s => s.player_id === playerId && s.hole_number === hole)?.gross_score ?? '';
-  }
+	// Get raw matchPlayers data and find unique team IDs
+	const uniqueTeamIds = [...new Set(matchPlayers.map((mp) => mp.team_id))];
 
-  // Helper to check if match is locked
-  const isLocked = match?.is_locked;
+	// Filter players by team_id - using the first two unique team IDs
+	let teamAPlayers = [];
+	let teamBPlayers = [];
 
-  // Initialize local score state for each player
-  onMount(() => {
-    for (const p of matchPlayers) {
-      p.scores = {};
-      for (const hole of holes) {
-        p.scores[hole] = getScore(p.player_id, hole);
-      }
-    }
-  });
+	if (uniqueTeamIds.length >= 1) {
+		const teamAId = uniqueTeamIds[0];
+		teamAPlayers = matchPlayers.filter((mp) => mp.team_id === teamAId);
 
-  // Save score to Supabase
-  async function saveScore(playerId: string, hole: number, value: number | null) {
-    if (!authState?.user) return;
-    
-    // Determine team ID from player's team_id
-    const playerEntry = matchPlayers.find(p => p.player_id === playerId);
-    if (!playerEntry) return;
-    
-    // Upsert score for this player/hole/match
-    const { error } = await supabase.from('scores').upsert([
-      {
-        match_id: match.id,
-        player_id: playerId,
-        team: playerEntry.team_id, // Use player's team_id directly
-        hole_number: hole,
-        gross_score: value ? parseInt(value as any) : null
-      }
-    ], { onConflict: 'match_id,player_id,hole_number' });
-    if (error) {
-      alert('Error saving score: ' + error.message);
-    }
-  }
+		if (uniqueTeamIds.length >= 2) {
+			const teamBId = uniqueTeamIds[1];
+			teamBPlayers = matchPlayers.filter((mp) => mp.team_id === teamBId);
+		}
+	}
 
-  // Helper to determine if this is a 1v1 match
-  const is1v1 = matchType?.name === '1v1 Individual Match';
+	// Get team objects from player team_id values
+	const teamA = uniqueTeamIds.length >= 1 ? teams.find((t) => t.id === uniqueTeamIds[0]) : null;
+	const teamB = uniqueTeamIds.length >= 2 ? teams.find((t) => t.id === uniqueTeamIds[1]) : null;
 
-  // Helper to determine if this is a 2v2 Team Scramble match
-  const is2v2Scramble = matchType?.name === '2v2 Team Scramble';  // Don't check for exact player count
+	// For now, just show 18 holes
+	const holes = Array.from({ length: 18 }, (_, i) => i + 1);
 
-  // Helper to determine if this is a 2v2 Team Best Ball match
-  const is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
+	// Helper to get score for a player/team/hole
+	function getScore(playerId: string, hole: number) {
+		return (
+			scores.find((s) => s.player_id === playerId && s.hole_number === hole)?.gross_score ?? ''
+		);
+	}
+
+	// Helper to check if match is locked
+	const isLocked = match?.is_locked;
+
+	// Initialize local score state for each player
+	onMount(() => {
+		for (const p of matchPlayers) {
+			p.scores = {};
+			for (const hole of holes) {
+				p.scores[hole] = getScore(p.player_id, hole);
+			}
+		}
+	});
+
+	// Save score to Supabase
+	async function saveScore(playerId: string, hole: number, value: number | null) {
+		if (!authState?.user) return;
+
+		// Determine team ID from player's team_id
+		const playerEntry = matchPlayers.find((p) => p.player_id === playerId);
+		if (!playerEntry) return;
+
+		// Upsert score for this player/hole/match
+		const { error } = await supabase.from('scores').upsert(
+			[
+				{
+					match_id: match.id,
+					player_id: playerId,
+					team: playerEntry.team_id, // Use player's team_id directly
+					hole_number: hole,
+					gross_score: value ? parseInt(value as any) : null
+				}
+			],
+			{ onConflict: 'match_id,player_id,hole_number' }
+		);
+		if (error) {
+			alert('Error saving score: ' + error.message);
+		}
+	}
+
+	// Helper to determine if this is a 1v1 match
+	const is1v1 = matchType?.name === '1v1 Individual Match';
+
+	// Helper to determine if this is a 2v2 Team Scramble match
+	const is2v2Scramble = matchType?.name === '2v2 Team Scramble'; // Don't check for exact player count
+
+	// Helper to determine if this is a 2v2 Team Best Ball match
+	const is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
 </script>
 
-<section class="max-w-3xl mx-auto p-4">
-  <h1 class="text-2xl font-bold mb-2">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
-  <div class="mb-2 text-gray-600">Match Type: {matchType?.name || 'Unknown'}</div>
-  <div class="mb-6 text-gray-500">Status: {match.status || 'Unknown'}</div>
+<section class="mx-auto max-w-3xl p-4">
+	<h1 class="mb-2 text-2xl font-bold">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
+	<div class="mb-2 text-gray-600">Match Type: {matchType?.name || 'Unknown'}</div>
+	<div class="mb-6 text-gray-500">Status: {match.status || 'Unknown'}</div>
 
-  {#if is1v1}
-    <Scorecard1v1
-      players={[teamAPlayers[0], teamBPlayers[0]]}
-      scores={scores}
-      holes={holes}
-      isLocked={isLocked}
-      saveScore={saveScore}
-    />
-  {:else if is2v2Scramble}
-    <Scorecard2v2Scramble
-      teamAPlayers={teamAPlayers}
-      teamBPlayers={teamBPlayers}
-      scores={scores}
-      holes={holes}
-      isLocked={isLocked}
-      saveScore={saveScore}
-    />
-  {:else if is2v2BestBall}
-    <Scorecard2v2BestBall
-      teamAPlayers={teamAPlayers}
-      teamBPlayers={teamBPlayers}
-      scores={scores}
-      holes={holes}
-      isLocked={isLocked}
-      saveScore={saveScore}
-    />
-  {:else}
-    <div class="text-gray-500">This match type is not yet implemented.</div>
-  {/if}
+	{#if is1v1}
+		<Scorecard1v1
+			players={[teamAPlayers[0], teamBPlayers[0]]}
+			{scores}
+			{holes}
+			{isLocked}
+			{saveScore}
+		/>
+	{:else if is2v2Scramble}
+		<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+	{:else if is2v2BestBall}
+		<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+	{:else}
+		<div class="text-gray-500">This match type is not yet implemented.</div>
+	{/if}
 </section>
