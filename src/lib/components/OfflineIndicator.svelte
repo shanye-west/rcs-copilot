@@ -27,7 +27,7 @@
     if (isOnline && unsyncedCount > 0) {
       displayToast(`You're back online. Syncing ${unsyncedCount} score${unsyncedCount === 1 ? '' : 's'}...`, 'success');
     } else if (!isOnline) {
-      displayToast('You're offline. Scores will sync when reconnected.', 'error');
+      displayToast("You're offline. Scores will sync when reconnected.", 'error');
     }
   }
   
