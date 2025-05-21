@@ -56,8 +56,8 @@
 			fullName = '';
 			pin = '';
 			isAdmin = false;
-		} catch (err: any) {
-			error = err.message || 'Failed to create user';
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Failed to create user';
 		} finally {
 			loading = false;
 		}

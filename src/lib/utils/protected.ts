@@ -2,7 +2,7 @@ import { redirect, type RequestEvent } from '@sveltejs/kit';
 import { supabase } from '$lib/supabase';
 
 export async function protectedRoute(event: RequestEvent) {
-	const { locals, url } = event;
+	const { url } = event;
 
 	// Check if user is authenticated
 	const { data } = await supabase.auth.getSession();

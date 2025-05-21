@@ -49,7 +49,7 @@
 					</a>
 				</div>
 				<ul>
-					{#each getMatchesForRound(round.id) as match}
+					{#each getMatchesForRound(round.id) as match (match.id)}
 						<li
 							class="mb-2 flex flex-col border-b p-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
 						>

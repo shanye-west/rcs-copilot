@@ -1,6 +1,26 @@
 <script lang="ts">
-	export let players: any[]; // [playerA, playerB]
-	export let scores: any[]; // all scores for this match
+	// Define interfaces for type safety
+	interface Player {
+		player: {
+			id: string;
+			username: string;
+			handicap?: number;
+			handicap_strokes?: number[];
+		};
+		player_id: string;
+		team_id: string;
+		scores?: Record<number, number | string>;
+	}
+
+	interface Score {
+		player_id: string;
+		hole_number: number;
+		net_score?: number;
+		gross_score?: number;
+	}
+
+	export let players: Player[]; // [playerA, playerB]
+	export let scores: Score[]; // all scores for this match
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
 	export let saveScore: (playerId: string, hole: number, value: number) => void;
@@ -27,7 +47,7 @@
 	}
 
 	// Handicap dots logic for 1v1 match
-	function getDots(player: any, hole: number): string {
+	function getDots(player: Player['player'], hole: number): string {
 		// If player.handicap_strokes exists, use it
 		if (player.handicap_strokes && player.handicap_strokes.length === 18) {
 			return player.handicap_strokes[hole - 1] > 0

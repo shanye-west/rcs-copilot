@@ -1,13 +1,29 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
+	// Define interfaces for type safety
+	interface Player {
+		player_id: string;
+		team_id: string;
+		username?: string;
+		full_name?: string;
+		scores?: Record<number, string | number>;
+	}
+
+	interface ScoreData {
+		player_id: string;
+		hole_number: number;
+		gross_score?: number;
+		net_score?: number;
+	}
+
 	// Your props
-	export let teamAPlayers: any[] = [];
-	export let teamBPlayers: any[] = [];
-	export const scores: any[] = [];
+	export let teamAPlayers: Player[] = [];
+	export let teamBPlayers: Player[] = [];
+	export const scores: ScoreData[] = [];
 	export let holes: number[] = [];
 	export let isLocked = false;
-	export let saveScore = (playerId: string, hole: number, value: number | null) => {};
+	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
 
 	// Defensive: make sure arrays are never undefined and players have scores
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -35,7 +51,6 @@
 			}
 		});
 	});
-
 	// Make sure players exist
 	$: teamAPlayer1 = safeTeamAPlayers[0] || null;
 	$: teamAPlayer2 = safeTeamAPlayers[1] || null;
@@ -43,18 +58,18 @@
 	$: teamBPlayer2 = safeTeamBPlayers[1] || null;
 
 	// Safe score getters
-	$: getTeamAScore = (hole: number): string | number => {
+	function getTeamAScore(hole: number): string | number {
 		if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
 		return teamAPlayer1.scores[hole] || '';
-	};
-
-	$: getTeamBScore = (hole: number): string | number => {
+	}
+	
+	function getTeamBScore(hole: number): string | number {
 		if (!teamBPlayer1 || !teamBPlayer1.scores) return '';
 		return teamBPlayer1.scores[hole] || '';
-	};
+	}
 
 	// Helper to determine which team is winning on a hole
-	$: getWinningTeam = (hole: number): string | null => {
+	function getWinningTeam(hole: number): string | null {
 		const scoreA = getTeamAScore(hole);
 		const scoreB = getTeamBScore(hole);
 
@@ -70,33 +85,61 @@
 	};
 
 	// Handle score change
-	function handleScoreChange(team: string, hole: number, e: any) {
+	function handleScoreChange(team: string, hole: number, e: Event) {
 		if (isLocked) return;
 
-		const value = e.target.value;
+		const value = (e.target as HTMLInputElement).value;
 		// Allow empty string or a number between 1-12
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
-			if (team === 'A' && teamAPlayer1) {
-				// Ensure scores object exists
-				if (!teamAPlayer1.scores) teamAPlayer1.scores = {};
-
-				// Update the score
-				teamAPlayer1.scores[hole] = value;
-
-				// Save it
-				if (teamAPlayer1.player_id) {
-					saveScore(teamAPlayer1.player_id, hole, value === '' ? null : parseInt(value));
+			if (team === 'A') {
+				// Create a new array with the updated player
+				teamAPlayers = teamAPlayers.map(player => {
+					if (player === teamAPlayers[0]) {
+						// Create new scores object if it doesn't exist
+						const updatedScores = { ...(player.scores || {}) };
+						updatedScores[hole] = value;
+						
+						// Return updated player with new scores
+						return {
+							...player,
+							scores: updatedScores
+						};
+					}
+					return player;
+				});
+				
+				// Save it outside of the reactive assignment
+				if (teamAPlayers[0]?.player_id) {
+					saveScore(
+						teamAPlayers[0].player_id, 
+						hole, 
+						value === '' ? null : parseInt(value)
+					);
 				}
-			} else if (team === 'B' && teamBPlayer1) {
-				// Ensure scores object exists
-				if (!teamBPlayer1.scores) teamBPlayer1.scores = {};
-
-				// Update the score
-				teamBPlayer1.scores[hole] = value;
-
-				// Save it
-				if (teamBPlayer1.player_id) {
-					saveScore(teamBPlayer1.player_id, hole, value === '' ? null : parseInt(value));
+			} else if (team === 'B') {
+				// Create a new array with the updated player
+				teamBPlayers = teamBPlayers.map(player => {
+					if (player === teamBPlayers[0]) {
+						// Create new scores object if it doesn't exist
+						const updatedScores = { ...(player.scores || {}) };
+						updatedScores[hole] = value;
+						
+						// Return updated player with new scores
+						return {
+							...player,
+							scores: updatedScores
+						};
+					}
+					return player;
+				});
+				
+				// Save it outside of the reactive assignment
+				if (teamBPlayers[0]?.player_id) {
+					saveScore(
+						teamBPlayers[0].player_id, 
+						hole, 
+						value === '' ? null : parseInt(value)
+					);
 				}
 			}
 		}

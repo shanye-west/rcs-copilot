@@ -1,12 +1,20 @@
-<script lang="ts">  import { supabase } from '$lib/supabase';
-  import { onMount } from 'svelte';
-  import { auth } from '$lib/stores/auth';
-  import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
-  import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
-  import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
+<script lang="ts">
+	import { supabase } from '$lib/supabase';
+	import { onMount } from 'svelte';
+	import { auth } from '$lib/stores/auth';
+	import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
+	import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
+	import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
+
+	interface User {
+		id: string;
+		username: string;
+		fullName: string;
+		isAdmin: boolean;
+	}
 
 	// Subscribe to auth store
-	let authState: { user: any | null; loading: boolean; error: string | null };
+	let authState: { user: User | null; loading: boolean; error: string | null };
 	auth.subscribe((state) => {
 		authState = state;
 	});
@@ -80,7 +88,7 @@
 					player_id: playerId,
 					team: playerEntry.team_id, // Use player's team_id directly
 					hole_number: hole,
-					gross_score: value ? parseInt(value as any) : null
+					gross_score: value !== null ? Number(value) : null
 				}
 			],
 			{ onConflict: 'match_id,player_id,hole_number' }

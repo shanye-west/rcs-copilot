@@ -1,14 +1,59 @@
 <script lang="ts">
-	export let matchType: any;
-	export let teamAPlayers: any[];
-	export let teamBPlayers: any[];
-	export let matchPlayers: any[];
-	export let match: any;
-	export let debugInfo: any = {}; // Add debugInfo prop
 	import { auth } from '$lib/stores/auth';
 
+	// Define interfaces for type safety
+	interface Player {
+		player_id: string;
+		team_id: string;
+		player?: {
+			id: string;
+			username: string;
+			full_name: string;
+		};
+		username?: string;
+		full_name?: string;
+		scores?: Record<number, string | number>;
+	}
+
+	interface Match {
+		id: string;
+		round_id: string;
+		match_type_id: string;
+		status: string;
+		is_locked: boolean;
+	}
+
+	interface MatchType {
+		id: string;
+		name: string;
+		description?: string;
+	}
+
+	interface DebugInfo {
+		matchId?: string;
+		matchPlayersReceived?: number;
+		hasMatchPlayersError?: boolean;
+		matchPlayersErrorMessage?: string;
+		matchPlayersErrorCode?: string;
+		matchPlayersErrorDetails?: string;
+	}
+
+	export let matchType: MatchType;
+	export let teamAPlayers: Player[];
+	export let teamBPlayers: Player[];
+	export let matchPlayers: Player[];
+	export let match: Match;
+	export let debugInfo: DebugInfo = {};
+
 	// Subscribe to auth store
-	let authState: { user: any | null; loading: boolean; error: string | null };
+	interface User {
+		id: string;
+		username: string;
+		fullName: string;
+		isAdmin: boolean;
+	}
+	
+	let authState: { user: User | null; loading: boolean; error: string | null };
 	auth.subscribe((state) => {
 		authState = state;
 	});

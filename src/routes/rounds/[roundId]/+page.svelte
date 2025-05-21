@@ -1,6 +1,4 @@
 <script lang="ts">
-	import { page } from '$app/stores';
-	import { onMount } from 'svelte';
 	export let data;
 	const { round, matches, matchTypes, tournament } = data;
 

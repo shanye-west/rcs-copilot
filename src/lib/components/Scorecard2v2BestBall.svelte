@@ -1,7 +1,29 @@
 <script lang="ts">
-	export let teamAPlayers: any[];
-	export let teamBPlayers: any[];
-	export let scores: any[];
+	// Define interfaces for type safety
+	interface Player {
+		player: {
+			id: string;
+			username: string;
+			handicap?: number;
+			handicap_strokes?: number[];
+			hole_stroke_indexes?: number[];
+		};
+		player_id: string;
+		team_id: string;
+		scores?: Record<number, number | string>;
+		username?: string;
+	}
+
+	interface Score {
+		player_id: string;
+		hole_number: number;
+		net_score?: number;
+		gross_score?: number;
+	}
+
+	export let teamAPlayers: Player[];
+	export let teamBPlayers: Player[];
+	export let scores: Score[];
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
 	export let saveScore: (playerId: string, hole: number, value: number) => void;
@@ -12,7 +34,7 @@
 	}
 
 	// Helper to get handicap dots for a player/hole
-	function getDots(player: any, hole: number): string {
+	function getDots(player: Player['player'], hole: number): string {
 		// Assumptions:
 		// - player.handicap: integer, total course handicap for 18 holes
 		// - player.handicap_strokes: optional array of 18 numbers (1 if gets stroke on hole, 0 otherwise)
@@ -55,10 +77,10 @@
 	}
 
 	// For each hole, get the best net score for each team
-	function getBestNetScore(players: any[], hole: number): number | string {
+	function getBestNetScore(players: Player[], hole: number): number | string {
 		const netScores = players
-			.filter((p: any) => p && p.player && p.player.id)
-			.map((p: any) => getScore(p.player.id, hole))
+			.filter((p) => p && p.player && p.player.id)
+			.map((p) => getScore(p.player.id, hole))
 			.filter(Boolean);
 		if (netScores.length === 0) return '';
 
