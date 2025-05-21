@@ -19,31 +19,31 @@ Object.defineProperty(window, 'matchMedia', {
 
 // Mock IndexedDB for offline store tests
 global.indexedDB = {
-  open: vi.fn(),
-  deleteDatabase: vi.fn()
+	open: vi.fn(),
+	deleteDatabase: vi.fn()
 };
 
 // Mock browser environment
 Object.defineProperty(navigator, 'onLine', {
-  writable: true,
-  value: true
+	writable: true,
+	value: true
 });
 
 // Mock for svelte component tests to work in a Node environment
 beforeEach(() => {
-  // Set up svelte.mount to avoid server render errors
-  if (svelte.mount) {
-    vi.spyOn(svelte, 'mount').mockImplementation(() => {
-      return {
-        destroy: vi.fn()
-      };
-    });
-  }
+	// Set up svelte.mount to avoid server render errors
+	if (svelte.mount) {
+		vi.spyOn(svelte, 'mount').mockImplementation(() => {
+			return {
+				destroy: vi.fn()
+			};
+		});
+	}
 });
 
 // Clean up after each test
 afterEach(() => {
-  cleanup();
+	cleanup();
 });
 
 // add more mocks here if you need them

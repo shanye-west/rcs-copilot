@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { getWinningTeam as determineWinningTeam } from '$lib/utils/scoring';
 
 	// Define interfaces for type safety
 	interface Player {
@@ -30,6 +31,7 @@
 	export let holes: number[] = [];
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
+	export let getSyncStatus: (playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
 
 	// Defensive: make sure arrays are never undefined
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -58,47 +60,157 @@
 		});
 	});
 
-	// Get player by index from team (with safety)
-	function getTeamPlayer(team: Player[], index: number): Player | null {
-		return team[index] || null;
+	// Reference to the first player in each team (captain/representative)
+	$: teamAPlayer1 = safeTeamAPlayers[0] || null;
+	$: teamBPlayer1 = safeTeamBPlayers[0] || null;
+
+	// Safe score getters
+	function getTeamAScore(hole: number): string | number {
+		if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
+		return teamAPlayer1.scores[hole] || '';
 	}
 
-	// Safe score getters for individual players
-	function getPlayerScore(player: Player | null, hole: number): string | number {
-		if (!player || !player.scores) return '';
-		return player.scores[hole] || '';
-	}
-
-	// Calculate best drive team score
-	function getBestTeamScore(teamPlayers: Player[], hole: number): string | number {
-		// In Shamble format, players use the best drive, then play their own ball
-		// We'll show individual scores for each player
-		return '';
+	function getTeamBScore(hole: number): string | number {
+		if (!teamBPlayer1 || !teamBPlayer1.scores) return '';
+		return teamBPlayer1.scores[hole] || '';
 	}
 
 	// Helper to determine which team is winning on a hole
 	function getWinningTeam(hole: number): string | null {
-		const teamAScores = safeTeamAPlayers.map(p => getPlayerScore(p, hole));
-		const teamBScores = safeTeamBPlayers.map(p => getPlayerScore(p, hole));
+		const scoreA = getTeamAScore(hole);
+		const scoreB = getTeamBScore(hole);
 
-		// Need all scores to determine a winner
-		if (teamAScores.some(score => !score) || teamBScores.some(score => !score)) {
-			return null;
-		}
+		if (scoreA === '' || scoreB === '') return null;
 
-		// Convert to numbers and find the best (lowest) score for each team
-		const teamABest = Math.min(...teamAScores.map(s => Number(s)).filter(n => !isNaN(n)));
-		const teamBBest = Math.min(...teamBScores.map(s => Number(s)).filter(n => !isNaN(n)));
+		const numA = Number(scoreA);
+		const numB = Number(scoreB);
 
-		if (isNaN(teamABest) || isNaN(teamBBest)) return null;
-		if (teamABest < teamBBest) return 'A';
-		if (teamBBest < teamABest) return 'B';
-		return 'tie';
+		if (isNaN(numA) || isNaN(numB)) return null;
+		
+		const result = determineWinningTeam(numA, numB);
+		if (result === null) return null;
+		return result;
 	}
 
 	// Handle score change
-	function handleScoreChange(teamId: string, playerIndex: number, hole: number, e: Event) {
+	function handleScoreChange(team: string, hole: number, e: Event) {
 		if (isLocked) return;
+
+		const value = (e.target as HTMLInputElement).value;
+		// Allow empty string or a number between 1-12
+		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
+			const playerToUpdate = team === 'A' ? teamAPlayer1 : teamBPlayer1;
+			if (!playerToUpdate) return;
+			
+			// Update the player's score
+			if (playerToUpdate.scores) {
+				playerToUpdate.scores[hole] = value;
+			}
+			
+			// Save to the backend/store
+			if (value === '') {
+				saveScore(playerToUpdate.player_id, hole, null);
+			} else {
+				saveScore(playerToUpdate.player_id, hole, parseInt(value));
+			}
+		}
+	}
+</script>
+
+<div class="scoreboard overflow-x-auto">
+	<h2 class="mb-2 text-lg font-bold">2v2 Team Shamble Scorecard</h2>
+	<table class="min-w-full border-collapse">
+		<thead>
+			<tr>
+				<th class="sticky left-0 border bg-white px-2 py-1">Team</th>
+				{#each safeHoles as hole (hole)}
+					<th class="w-12 border px-2 py-1">{hole}</th>
+				{/each}
+			</tr>
+		</thead>
+		<tbody>
+			<!-- Team A Row -->
+			<tr class="bg-blue-50">
+				<td class="sticky left-0 border bg-blue-50 px-2 py-1 font-semibold">
+					Team A
+					{#if teamAPlayer1}
+						<div class="text-xs">
+							{teamAPlayer1.username || teamAPlayer1.player?.username || 'Player 1'}
+							{#if safeTeamAPlayers[1]}
+								& {safeTeamAPlayers[1].username || safeTeamAPlayers[1].player?.username || 'Player 2'}
+							{/if}
+						</div>
+					{/if}
+				</td>
+				{#each safeHoles as hole (hole)}
+					<td
+						class="border px-1 py-1 text-center"
+						class:bg-green-100={getWinningTeam(hole) === 'A'}
+						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
+					>
+						<input
+							type="text"
+							class="w-full bg-transparent text-center"
+							value={getTeamAScore(hole)}
+							disabled={isLocked}
+							on:input={(e) => handleScoreChange('A', hole, e)}
+						/>
+						<!-- Sync status indicator -->
+						{#if typeof getSyncStatus === 'function'}
+							{#if getSyncStatus(teamAPlayer1?.player_id, hole) === 'pending'}
+								<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+							{:else if getSyncStatus(teamAPlayer1?.player_id, hole) === 'synced'}
+								<span title="Synced" class="ml-1 text-green-600">✔️</span>
+							{:else if getSyncStatus(teamAPlayer1?.player_id, hole) === 'failed'}
+								<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+							{/if}
+						{/if}
+					</td>
+				{/each}
+			</tr>
+
+			<!-- Team B Row -->
+			<tr class="bg-red-50">
+				<td class="sticky left-0 border bg-red-50 px-2 py-1 font-semibold">
+					Team B
+					{#if teamBPlayer1}
+						<div class="text-xs">
+							{teamBPlayer1.username || teamBPlayer1.player?.username || 'Player 1'}
+							{#if safeTeamBPlayers[1]}
+								& {safeTeamBPlayers[1].username || safeTeamBPlayers[1].player?.username || 'Player 2'}
+							{/if}
+						</div>
+					{/if}
+				</td>
+				{#each safeHoles as hole (hole)}
+					<td
+						class="border px-1 py-1 text-center"
+						class:bg-green-100={getWinningTeam(hole) === 'B'}
+						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
+					>
+						<input
+							type="text"
+							class="w-full bg-transparent text-center"
+							value={getTeamBScore(hole)}
+							disabled={isLocked}
+							on:input={(e) => handleScoreChange('B', hole, e)}
+						/>
+						<!-- Sync status indicator -->
+						{#if typeof getSyncStatus === 'function'}
+							{#if getSyncStatus(teamBPlayer1?.player_id, hole) === 'pending'}
+								<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+							{:else if getSyncStatus(teamBPlayer1?.player_id, hole) === 'synced'}
+								<span title="Synced" class="ml-1 text-green-600">✔️</span>
+							{:else if getSyncStatus(teamBPlayer1?.player_id, hole) === 'failed'}
+								<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+							{/if}
+						{/if}
+					</td>
+				{/each}
+			</tr>
+		</tbody>
+	</table>
+</div>
 
 		const value = (e.target as HTMLInputElement).value;
 		
