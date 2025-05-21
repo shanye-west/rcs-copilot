@@ -3,6 +3,56 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface Database {
 	public: {
 		Tables: {
+			bets: {
+				Row: {
+					id: string;
+					creator_id: string;
+					opponent_id: string | null;
+					amount: number;
+					description: string;
+					status: string;
+					is_paid: boolean;
+					resolution_type: string;
+					match_id: string | null;
+					round_id: string | null;
+					tournament_id: string | null;
+					winner_id: string | null;
+					created_at: string;
+					updated_at: string;
+				};
+				Insert: {
+					id?: string;
+					creator_id: string;
+					opponent_id?: string | null;
+					amount: number;
+					description: string;
+					status?: string;
+					is_paid?: boolean;
+					resolution_type: string;
+					match_id?: string | null;
+					round_id?: string | null;
+					tournament_id?: string | null;
+					winner_id?: string | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+				Update: {
+					id?: string;
+					creator_id?: string;
+					opponent_id?: string | null;
+					amount?: number;
+					description?: string;
+					status?: string;
+					is_paid?: boolean;
+					resolution_type?: string;
+					match_id?: string | null;
+					round_id?: string | null;
+					tournament_id?: string | null;
+					winner_id?: string | null;
+					created_at?: string;
+					updated_at?: string;
+				};
+			};
 			match_players: {
 				Row: {
 					id: string;

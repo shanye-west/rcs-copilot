@@ -3,6 +3,8 @@
 	import { onMount } from 'svelte';
 	import { auth } from '$lib/stores/auth';
 	import '../app.postcss';
+	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
+	import { offlineStore } from '$lib/stores/offline-store';
 
 	let menuOpen = false;
 
@@ -20,6 +22,9 @@
 </script>
 
 <div class="min-h-screen bg-gray-50">
+	<!-- Global offline indicator -->
+	<OfflineIndicator />
+	
 	<header class="bg-white shadow">
 		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 			<div class="flex h-16 justify-between">
@@ -28,6 +33,13 @@
 				</div>
 
 				<div class="flex items-center">
+					<!-- Offline indicator badge -->
+					{#if !$offlineStore.isOnline}
+						<div class="mr-2 rounded-full bg-red-500 px-2 py-1 text-xs text-white">
+							Offline
+						</div>
+					{/if}
+					
 					<button
 						on:click={toggleMenu}
 						class="rounded-md p-2 text-gray-600 hover:text-gray-800 focus:outline-none"

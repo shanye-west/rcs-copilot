@@ -72,7 +72,9 @@
 		}
 	});
 
-	// Save score to Supabase
+	import { offlineStore } from '$lib/stores/offline-store';
+	
+	// Save score to Supabase with offline support
 	async function saveScore(playerId: string, hole: number, value: number | null) {
 		if (!authState?.user) return;
 
@@ -80,33 +82,59 @@
 		const playerEntry = matchPlayers.find((p) => p.player_id === playerId);
 		if (!playerEntry) return;
 
-		// Upsert score for this player/hole/match
-		const { error } = await supabase.from('scores').upsert(
-			[
-				{
-					match_id: match.id,
-					player_id: playerId,
-					team: playerEntry.team_id, // Use player's team_id directly
-					hole_number: hole,
-					gross_score: value !== null ? Number(value) : null
+		// Add to offline store first (this ensures data is saved even if offline)
+		offlineStore.addScore({
+			player_id: playerId,
+			hole_number: hole,
+			score: value,
+			match_id: match.id
+		});
+
+		// If we're online, try to save to Supabase directly
+		if ($offlineStore.isOnline) {
+			try {
+				// Upsert score for this player/hole/match
+				const { error } = await supabase.from('scores').upsert(
+					[
+						{
+							match_id: match.id,
+							player_id: playerId,
+							team: playerEntry.team_id, // Use player's team_id directly
+							hole_number: hole,
+							gross_score: value !== null ? Number(value) : null
+						}
+					],
+					{ onConflict: 'match_id,player_id,hole_number' }
+				);
+				
+				if (error) {
+					console.error('Error saving score:', error.message);
+				} else {
+					// Mark as synced in the offline store
+					offlineStore.markSynced(playerId, hole, match.id);
 				}
-			],
-			{ onConflict: 'match_id,player_id,hole_number' }
-		);
-		if (error) {
-			alert('Error saving score: ' + error.message);
+			} catch (error) {
+				console.error('Failed to save score:', error);
+				// Score remains in offline store for later sync
+			}
 		}
 	}
 
-	// Helper to determine if this is a 1v1 match
+	// Helper to determine match types
 	const is1v1 = matchType?.name === '1v1 Individual Match';
-
-	// Helper to determine if this is a 2v2 Team Scramble match
-	const is2v2Scramble = matchType?.name === '2v2 Team Scramble'; // Don't check for exact player count
-
-	// Helper to determine if this is a 2v2 Team Best Ball match
+	const is2v2Scramble = matchType?.name === '2v2 Team Scramble';
 	const is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
+	const is2v2Shamble = matchType?.name === '2v2 Team Shamble';
+	const is4v4TeamScramble = matchType?.name === '4v4 Team Scramble';
+	
+	// Import new scorecard components
+	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
+	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
+	import { offlineStore } from '$lib/stores/offline-store';
+	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 </script>
+
+<OfflineIndicator />
 
 <section class="mx-auto max-w-3xl p-4">
 	<h1 class="mb-2 text-2xl font-bold">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
@@ -125,7 +153,14 @@
 		<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
 	{:else if is2v2BestBall}
 		<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+	{:else if is2v2Shamble}
+		<Scorecard2v2Shamble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+	{:else if is4v4TeamScramble}
+		<Scorecard4v4TeamScramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
 	{:else}
-		<div class="text-gray-500">This match type is not yet implemented.</div>
+		<div class="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+			<h3 class="font-bold">Match Type Not Implemented</h3>
+			<p>This match type ({matchType?.name || 'Unknown'}) is not yet fully implemented.</p>
+		</div>
 	{/if}
 </section>
