@@ -2,12 +2,12 @@
   import { onMount } from 'svelte';
   
   // Your props
-  export let teamAPlayers: any[] = [];
-  export let teamBPlayers: any[] = [];
-  export const scores: any[] = [];
-  export let holes: number[] = [];
+  export let teamAPlayers = [];
+  export let teamBPlayers = [];
+  export let scores = [];
+  export let holes = [];
   export let isLocked = false;
-  export let saveScore = (playerId: string, hole: number, value: number | null) => {};
+  export let saveScore = (playerId: string, hole: number, value: number) => {};
 
   // Defensive: make sure arrays are never undefined and players have scores
   $: safeTeamAPlayers = teamAPlayers || [];
@@ -43,18 +43,18 @@
   $: teamBPlayer2 = safeTeamBPlayers[1] || null;
 
   // Safe score getters
-  $: getTeamAScore = (hole: number): string | number => {
+  $: getTeamAScore = (hole) => {
     if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
     return teamAPlayer1.scores[hole] || '';
   };
   
-  $: getTeamBScore = (hole: number): string | number => {
+  $: getTeamBScore = (hole) => {
     if (!teamBPlayer1 || !teamBPlayer1.scores) return '';
     return teamBPlayer1.scores[hole] || '';
   };
 
   // Helper to determine which team is winning on a hole
-  $: getWinningTeam = (hole: number): string | null => {
+  $: getWinningTeam = (hole) => {
     const scoreA = getTeamAScore(hole);
     const scoreB = getTeamBScore(hole);
     
@@ -70,7 +70,7 @@
   };
 
   // Handle score change
-  function handleScoreChange(team: string, hole: number, e: any) {
+  function handleScoreChange(team, hole, e) {
     if (isLocked) return;
     
     const value = e.target.value;

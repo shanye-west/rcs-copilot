@@ -6,7 +6,7 @@
   export let saveScore: (playerId: string, hole: number, value: number) => void;
 
   // Helper to get score for a player/hole
-  function getScore(playerId, hole) {
+  function getScore(playerId: string, hole: number): number | string {
     return scores.find(s => s.player_id === playerId && s.hole_number === hole)?.net_score ?? '';
   }
 
@@ -26,7 +26,7 @@
   }
 
   // Handicap dots logic for 1v1 match
-  function getDots(player, hole) {
+  function getDots(player: any, hole: number): string {
     // If player.handicap_strokes exists, use it
     if (player.handicap_strokes && player.handicap_strokes.length === 18) {
       return player.handicap_strokes[hole - 1] > 0 ? '•'.repeat(player.handicap_strokes[hole - 1]) : '';

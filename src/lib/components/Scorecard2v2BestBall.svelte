@@ -7,12 +7,12 @@
   export let saveScore: (playerId: string, hole: number, value: number) => void;
 
   // Helper to get score for a player/hole
-  function getScore(playerId, hole) {
+  function getScore(playerId: string, hole: number): number | string {
     return scores.find(s => s.player_id === playerId && s.hole_number === hole)?.net_score ?? '';
   }
 
   // Helper to get handicap dots for a player/hole
-  function getDots(player, hole) {
+  function getDots(player: any, hole: number): string {
     // Assumptions:
     // - player.handicap: integer, total course handicap for 18 holes
     // - player.handicap_strokes: optional array of 18 numbers (1 if gets stroke on hole, 0 otherwise)
@@ -52,13 +52,20 @@
   }
 
   // For each hole, get the best net score for each team
-  function getBestNetScore(players, hole) {
+  function getBestNetScore(players: any[], hole: number): number | string {
     const netScores = players
-      .filter(p => p && p.player && p.player.id)
-      .map(p => getScore(p.player.id, hole))
+      .filter((p: any) => p && p.player && p.player.id)
+      .map((p: any) => getScore(p.player.id, hole))
       .filter(Boolean);
     if (netScores.length === 0) return '';
-    return Math.min(...netScores);
+    
+    // Filter out any string values and convert all to numbers
+    const numericScores = netScores
+      .filter(score => typeof score === 'number')
+      .map(score => Number(score));
+    
+    if (numericScores.length === 0) return '';
+    return Math.min(...numericScores);
   }
 </script>
 

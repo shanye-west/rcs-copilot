@@ -6,7 +6,12 @@
   import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
   import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
   import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
-  import DebugPanel from './DebugPanel.svelte';
+
+  // Subscribe to auth store
+  let authState: { user: any | null; loading: boolean; error: string | null };
+  auth.subscribe(state => {
+    authState = state;
+  });
 
   export let data;
   
@@ -62,8 +67,8 @@
   });
 
   // Save score to Supabase
-  async function saveScore(playerId: string, hole: number, value: number) {
-    if (!auth.user) return;
+  async function saveScore(playerId: string, hole: number, value: number | null) {
+    if (!authState?.user) return;
     
     // Determine team ID from player's team_id
     const playerEntry = matchPlayers.find(p => p.player_id === playerId);
