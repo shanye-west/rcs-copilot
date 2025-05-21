@@ -24,6 +24,9 @@ const mockDB = {
 describe('Offline Store', () => {
 	// Setup global mocks
 	beforeEach(() => {
+		// Reset the store before each test
+		offlineStore.reset();
+
 		// Mock request events
 		const mockRequest = {
 			result: mockDB,

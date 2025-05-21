@@ -14,6 +14,14 @@ export default defineConfig({
 			{
 				find: '$env/static/public',
 				replacement: resolve(__dirname, './src/lib/mocks/env-public.js')
+			},
+			{
+				find: '$app/navigation',
+				replacement: resolve(__dirname, './src/lib/mocks/__mocks__/app-navigation.js')
+			},
+			{
+				find: '$app/stores',
+				replacement: resolve(__dirname, './src/lib/mocks/__mocks__/app-stores.js')
 			}
 		]
 	},

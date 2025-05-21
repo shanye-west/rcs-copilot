@@ -31,6 +31,18 @@ function createOfflineStore() {
 	return {
 		subscribe,
 
+		// Reset the store to its default state (useful for testing)
+		reset: () => {
+			set(defaultState);
+			if (browser) {
+				// Also clear IndexedDB if needed, or ensure it's re-initialized fresh
+				// For now, just resetting in-memory state.
+				// A more thorough reset might involve clearing the specific IndexedDB store.
+				// Let's try to save the default state to IndexedDB.
+				saveToIndexedDB(); // This will save an empty 'scores' array etc.
+			}
+		},
+
 		// Add a score to the offline queue
 		addScore: (score: Omit<OfflineScore, 'timestamp' | 'synced' | 'retry_count'>) => {
 			update((state) => {
@@ -190,7 +202,12 @@ async function saveToIndexedDB() {
 		const db = await openDatabase();
 		const transaction = db.transaction(['offlineData'], 'readwrite');
 		const store = transaction.objectStore('offlineData');
-		await store.put({ id: 'offlineState', ...(state as object) });
+		// Promisify the IDBRequest
+		await new Promise<void>((resolve, reject) => {
+			const request = store.put({ id: 'offlineState', ...(state as object) });
+			request.onsuccess = () => resolve();
+			request.onerror = () => reject(request.error);
+		});
 	} catch (error) {
 		console.error('Failed to save to IndexedDB:', error);
 	}
@@ -202,12 +219,13 @@ async function loadFromIndexedDB(): Promise<OfflineState | null> {
 		const db = await openDatabase();
 		const transaction = db.transaction(['offlineData'], 'readonly');
 		const store = transaction.objectStore('offlineData');
-		return new Promise((resolve, reject) => {
+		return new Promise<OfflineState | null>((resolve, reject) => {
 			const request = store.get('offlineState');
 			request.onsuccess = () => {
 				resolve(request.result ? (request.result as OfflineState) : null);
 			};
 			request.onerror = () => {
+				console.error('Error in loadFromIndexedDB store.get:', request.error);
 				reject(request.error);
 			};
 		});
