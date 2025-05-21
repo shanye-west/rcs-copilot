@@ -168,6 +168,16 @@
 									bind:value={p.scores[hole]}
 									on:change={() => saveScore(p.player.id, hole, p.scores[hole])}
 								/>
+								<!-- Sync status indicator -->
+								{#if typeof getSyncStatus === 'function'}
+									{#if getSyncStatus(p.player.id, hole) === 'pending'}
+										<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+									{:else if getSyncStatus(p.player.id, hole) === 'synced'}
+										<span title="Synced" class="ml-1 text-green-600">✔️</span>
+									{:else if getSyncStatus(p.player.id, hole) === 'failed'}
+										<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+									{/if}
+								{/if}
 							{:else}
 								{getScore(p.player.id, hole)}
 							{/if}

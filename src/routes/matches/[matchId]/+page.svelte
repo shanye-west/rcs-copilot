@@ -5,6 +5,8 @@
 	import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
 	import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
 	import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
+	import { get } from 'svelte/store';
+	import { offlineStore } from '$lib/stores/offline-store';
 
 	interface User {
 		id: string;
@@ -72,8 +74,20 @@
 		}
 	});
 
-	import { offlineStore } from '$lib/stores/offline-store';
-	
+	// Helper to get sync status for a score
+	function getSyncStatus(playerId: string, hole: number): 'pending' | 'synced' | 'failed' | null {
+		const state = get(offlineStore);
+		const matchId = match?.id;
+		if (!matchId) return null;
+		const score = state.scores.find(
+			(s) => s.player_id === playerId && s.hole_number === hole && s.match_id === matchId
+		);
+		if (!score) return null;
+		if (score.synced) return 'synced';
+		if (score.retry_count > 3) return 'failed';
+		return 'pending';
+	}
+
 	// Save score to Supabase with offline support
 	async function saveScore(playerId: string, hole: number, value: number | null) {
 		if (!authState?.user) return;
@@ -147,15 +161,16 @@
 			{holes}
 			{isLocked}
 			{saveScore}
+			getSyncStatus={getSyncStatus}
 		/>
 	{:else if is2v2Scramble}
-		<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+		<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else if is2v2BestBall}
-		<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+		<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else if is2v2Shamble}
-		<Scorecard2v2Shamble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+		<Scorecard2v2Shamble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else if is4v4TeamScramble}
-		<Scorecard4v4TeamScramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} />
+		<Scorecard4v4TeamScramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else}
 		<div class="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
 			<h3 class="font-bold">Match Type Not Implemented</h3>

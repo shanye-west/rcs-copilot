@@ -192,6 +192,16 @@
 								disabled={isLocked}
 								on:input={(e) => handleScoreChange('A', index, hole, e)}
 							/>
+							<!-- Sync status indicator -->
+							{#if typeof getSyncStatus === 'function'}
+								{#if getSyncStatus(player.player_id, hole) === 'pending'}
+									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+								{:else if getSyncStatus(player.player_id, hole) === 'synced'}
+									<span title="Synced" class="ml-1 text-green-600">✔️</span>
+								{:else if getSyncStatus(player.player_id, hole) === 'failed'}
+									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+								{/if}
+							{/if}
 						</td>
 					{/each}
 				</tr>
@@ -216,6 +226,16 @@
 								disabled={isLocked}
 								on:input={(e) => handleScoreChange('B', index, hole, e)}
 							/>
+							<!-- Sync status indicator -->
+							{#if typeof getSyncStatus === 'function'}
+								{#if getSyncStatus(player.player_id, hole) === 'pending'}
+									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+								{:else if getSyncStatus(player.player_id, hole) === 'synced'}
+									<span title="Synced" class="ml-1 text-green-600">✔️</span>
+								{:else if getSyncStatus(player.player_id, hole) === 'failed'}
+									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+								{/if}
+							{/if}
 						</td>
 					{/each}
 				</tr>
