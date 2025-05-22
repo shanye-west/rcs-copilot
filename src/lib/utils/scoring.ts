@@ -56,40 +56,60 @@ export function calculateNetScore(
 
 /**
  * Calculate handicap dots for a player on a specific hole, using course data if available.
- * If course is provided, use its handicap_per_hole for correct stroke allocation.
+ * Handicap dots represent the number of strokes a player gets on a specific hole.
+ * 
+ * In golf, handicap strokes are allocated based on hole difficulty:
+ * - For handicaps 1-18: Strokes are given on the X hardest holes (where X is the handicap)
+ * - For handicaps > 18: Player gets a stroke on every hole, plus additional strokes
+ *   on the hardest holes until all handicap strokes are distributed
+ *
+ * @param player - The player object containing handicap information
+ * @param hole - The hole number (1-based)
+ * @param course - Optional course data with hole difficulty ratings
+ * @returns A string with dots representing handicap strokes for visualization
  */
 export function calculateHandicapDots(
 	player: Player['player'],
 	hole: number,
 	course?: Course
 ): string {
-	// If player has explicit handicap_strokes array, use it
+	// Case 1: If player has explicitly defined handicap strokes per hole, use those
 	if (player.handicap_strokes && player.handicap_strokes.length === 18) {
-		return player.handicap_strokes[hole - 1] > 0
-			? '•'.repeat(player.handicap_strokes[hole - 1])
-			: '';
+		const strokesForHole = player.handicap_strokes[hole - 1];
+		return strokesForHole > 0 ? '•'.repeat(strokesForHole) : '';
 	}
 
+	// Case 2: No handicap means no strokes
 	const handicap = player.handicap || 0;
 	if (handicap === 0) return '';
 
-	// Use course handicap allocation if available
-	let strokeIndex = hole;
-	if (course && course.handicap_per_hole && course.handicap_per_hole.length === 18) {
-		// Find the index for this hole (1-based)
-		strokeIndex = course.handicap_per_hole[hole - 1];
+	// Determine hole difficulty (stroke index)
+	// Lower index = harder hole = gets handicap strokes first
+	let holeStrokeIndex = hole; // Default: assume holes are numbered by difficulty 
+	if (course?.handicap_per_hole?.length === 18) {
+		// Use course-specific hole difficulty ranking
+		holeStrokeIndex = course.handicap_per_hole[hole - 1];
 	}
 
+	// Calculate dots (strokes) for this hole
 	let dots = 0;
-	if (handicap >= 18) {
+	
+	// First allocation (handicaps 1-18)
+	// If hole difficulty index ≤ handicap, player gets a stroke
+	if (holeStrokeIndex <= handicap && handicap > 0) {
 		dots = 1;
-		if (handicap - 18 >= 18 - strokeIndex + 1) {
-			dots = 2;
-		} else if (handicap - 18 > 0 && strokeIndex <= handicap - 18) {
-			dots = 2;
+	}
+	
+	// Second allocation (handicaps > 18)
+	// For handicaps above 18, additional strokes are assigned to hardest holes first
+	if (handicap > 18) {
+		const extraHandicap = handicap - 18;
+		
+		// If hole's stroke index is less than or equal to the extra handicap,
+		// player gets an additional stroke on this hole
+		if (holeStrokeIndex <= extraHandicap) {
+			dots += 1;
 		}
-	} else if (handicap > 0 && strokeIndex <= handicap) {
-		dots = 1;
 	}
 
 	return dots > 0 ? '•'.repeat(dots) : '';
