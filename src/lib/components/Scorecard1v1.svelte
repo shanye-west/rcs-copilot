@@ -3,6 +3,7 @@
 		calculateNetScore,
 		calculateHandicapDots,
 		calculateMatchStatus,
+		getWinningTeam,
 		type Player,
 		type Score
 	} from '$lib/utils/scoring';
@@ -57,7 +58,13 @@
 		</thead>
 		<tbody>
 			{#each holes as hole (hole)}
-				<tr>
+				<tr class={getWinningTeam(
+					calculateNetScore(scores, players[0].player.id, hole),
+					calculateNetScore(scores, players[1].player.id, hole)
+				) === 'A' ? 'bg-green-50' : getWinningTeam(
+					calculateNetScore(scores, players[0].player.id, hole),
+					calculateNetScore(scores, players[1].player.id, hole)
+				) === 'B' ? 'bg-red-50' : ''}>
 					<td class="border px-2 py-1 font-bold">{hole}</td>
 					{#each players as p (p.player.id)}
 						<td class="border px-2 py-1">
@@ -90,7 +97,10 @@
 									{/if}
 								{/if}
 							{:else}
-								{getScore(p.player.id, hole)}
+								<div>
+									<span class="font-bold">Gross:</span> {p.scores && p.scores[hole]}
+									<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, p.player.id, hole)}
+								</div>
 							{/if}
 							<div class="text-xs text-gray-400">{getDots(p.player, hole)}</div>
 						</td>

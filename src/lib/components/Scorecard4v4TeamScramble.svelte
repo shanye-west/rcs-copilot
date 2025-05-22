@@ -1,7 +1,8 @@
 <script lang="ts">
 	import {
 		calculateGrossScore,
-		getWinningTeam as determineWinningTeam,
+		calculateNetScore,
+		getWinningTeam,
 		type Player,
 		type Score
 	} from '$lib/utils/scoring';
@@ -74,10 +75,10 @@
 	}
 
 	// Determine which team is winning on a hole
-	function getWinningTeam(hole: number): 'A' | 'B' | 'tie' | null {
+	function getWinningTeamStatus(hole: number): 'A' | 'B' | 'tie' | null {
 		const teamAScore = calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole);
 		const teamBScore = calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole);
-		return determineWinningTeam(teamAScore, teamBScore);
+		return getWinningTeam(teamAScore, teamBScore);
 	}
 
 	// Handle score change
@@ -111,7 +112,6 @@
 		Each team has four players who select the best shot on each stroke, then all players play from
 		that position.
 	</p>
-	<div class="mb-2 text-gray-600">Status: {calculateTeamMatchStatus()}</div>
 	<table class="min-w-full border-collapse text-sm">
 		<thead>
 			<tr>
@@ -119,24 +119,30 @@
 				<th class="border bg-blue-50 px-2 py-1">
 					Team A
 					<div class="text-xs text-gray-500">
-						{#each safeTeamAPlayers as p, i}<span>{p.player?.username || 'Player'}</span>{#if i < safeTeamAPlayers.length - 1},&nbsp;{/if}{/each}
+						{safeTeamAPlayers.map((p) => p.player?.username || 'Player').join(', ')}
 					</div>
 				</th>
 				<th class="border bg-red-50 px-2 py-1">
 					Team B
 					<div class="text-xs text-gray-500">
-						{#each safeTeamBPlayers as p, i}<span>{p.player?.username || 'Player'}</span>{#if i < safeTeamBPlayers.length - 1},&nbsp;{/if}{/each}
+						{safeTeamBPlayers.map((p) => p.player?.username || 'Player').join(', ')}
 					</div>
 				</th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each safeHoles as hole (hole)}
-				<tr class={getWinningTeam(hole) ? 'bg-gray-50' : ''}>
+				<tr class={getWinningTeam(
+					calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole),
+					calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)
+				) === 'A' ? 'bg-blue-50' : getWinningTeam(
+					calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole),
+					calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)
+				) === 'B' ? 'bg-red-50' : ''}>
 					<td class="border px-2 py-1 font-bold">{hole}</td>
 
 					<!-- Team A Score Cell -->
-					<td class="border px-2 py-1 text-center" class:bg-blue-100={getWinningTeam(hole) === 'A'}>
+					<td class="border px-2 py-1 text-center" class:bg-blue-100={getWinningTeam(calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole), calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)) === 'A'}>
 						{#if !isLocked && teamALeader}
 							<input
 								type="number"
@@ -165,12 +171,15 @@
 								{/if}
 							{/if}
 						{:else}
-							{getTeamScore(teamAPlayers, hole)}
+							<div>
+								<span class="font-bold">Gross:</span> {getTeamScore(teamAPlayers, hole)}
+								<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, teamAPlayers[0]?.player?.id, hole)}
+							</div>
 						{/if}
 					</td>
 
 					<!-- Team B Score Cell -->
-					<td class="border px-2 py-1 text-center" class:bg-red-100={getWinningTeam(hole) === 'B'}>
+					<td class="border px-2 py-1 text-center" class:bg-red-100={getWinningTeam(calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole), calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)) === 'B'}>
 						{#if !isLocked && teamBLeader}
 							<input
 								type="number"
@@ -199,7 +208,10 @@
 								{/if}
 							{/if}
 						{:else}
-							{getTeamScore(teamBPlayers, hole)}
+							<div>
+								<span class="font-bold">Gross:</span> {getTeamScore(teamBPlayers, hole)}
+								<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, teamBPlayers[0]?.player?.id, hole)}
+							</div>
 						{/if}
 					</td>
 				</tr>

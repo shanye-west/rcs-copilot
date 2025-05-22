@@ -69,6 +69,9 @@
 	// Helper to check if match is locked
 	const isLocked = match?.is_locked;
 
+	let saveError: string | null = null;
+	let isLoading = true;
+
 	// Initialize local score state for each player
 	onMount(() => {
 		for (const p of matchPlayers) {
@@ -77,6 +80,7 @@
 				p.scores[hole] = getScore(p.player_id, hole);
 			}
 		}
+		isLoading = false;
 	});
 
 	// Create helpers for offline integration
@@ -96,6 +100,7 @@
 			saveScoreHandler(playerId, hole, value);
 		}
 
+		saveError = null;
 		// If we're online, also try to save directly to Supabase
 		// (the offline store will handle syncing, but this gives immediate feedback)
 		if (navigator.onLine) {
@@ -111,12 +116,14 @@
 				const { error } = await supabase.from('match_scores').upsert(upsertPayload);
 				if (error) {
 					console.error('Supabase upsert error:', error, upsertPayload);
+					saveError = 'Error saving score. Please try again.';
 				} else {
 					// Mark as synced in offline store
 					offlineStore.markSynced(playerId, hole, matchId);
 				}
 			} catch (err) {
 				console.error('Error saving score:', err);
+				saveError = 'Error saving score. Please try again.';
 				// offline store will retry later
 			}
 		}
@@ -132,7 +139,13 @@
 
 <OfflineIndicator />
 
+{#if isLoading}
+	<div class="p-8 text-center text-gray-500">Loading match data...</div>
+{:else}
 <section class="mx-auto max-w-3xl p-4">
+	{#if saveError}
+		<div class="mb-4 rounded border border-red-200 bg-red-50 p-2 text-red-700">{saveError}</div>
+	{/if}
 	<h1 class="mb-2 text-2xl font-bold">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
 	<div class="mb-2 text-gray-600">Match Type: {matchType?.name || 'Unknown'}</div>
 	<div class="mb-6 text-gray-500">Status: {match.status || 'Unknown'}</div>
@@ -193,3 +206,4 @@
 		</div>
 	{/if}
 </section>
+{/if}

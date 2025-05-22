@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { getWinningTeam as determineWinningTeam } from '$lib/utils/scoring';
+	import { calculateNetScore, calculateHandicapDots, getWinningTeam } from '$lib/utils/scoring';
 
 	// Define interfaces for type safety
 	interface Player {
@@ -80,23 +80,6 @@
 		return teamBPlayer1.scores[hole] || '';
 	}
 
-	// Helper to determine which team is winning on a hole
-	function getWinningTeam(hole: number): string | null {
-		const scoreA = getTeamAScore(hole);
-		const scoreB = getTeamBScore(hole);
-
-		if (scoreA === '' || scoreB === '') return null;
-
-		const numA = Number(scoreA);
-		const numB = Number(scoreB);
-
-		if (isNaN(numA) || isNaN(numB)) return null;
-
-		const result = determineWinningTeam(numA, numB);
-		if (result === null) return null;
-		return result;
-	}
-
 	// Handle score change
 	function handleScoreChange(team: string, hole: number, e: Event) {
 		if (isLocked) return;
@@ -123,6 +106,7 @@
 </script>
 
 <div class="scoreboard overflow-x-auto">
+	<h2 class="mb-2 text-lg font-bold">2v2 Team Scramble Scorecard</h2>
 	<table class="min-w-full border-collapse">
 		<thead>
 			<tr>
@@ -139,9 +123,9 @@
 					Team A
 					{#if teamAPlayer1}
 						<div class="text-xs">
-							{teamAPlayer1.username || 'Player 1'}
-							{#if teamAPlayer2}
-								& {teamAPlayer2.username || 'Player 2'}
+							{teamAPlayer1.username || teamAPlayer1.player?.username || 'Player 1'}
+							{#if safeTeamAPlayers[1]}
+								& {safeTeamAPlayers[1].username || safeTeamAPlayers[1].player?.username || 'Player 2'}
 							{/if}
 						</div>
 					{/if}
@@ -149,8 +133,8 @@
 				{#each safeHoles as hole (hole)}
 					<td
 						class="border px-1 py-1 text-center"
-						class:bg-green-100={getWinningTeam(hole) === 'A'}
-						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
+						class:bg-green-100={getWinningTeam(getTeamAScore(hole), getTeamBScore(hole)) === 'A'}
+						class:bg-yellow-100={getWinningTeam(getTeamAScore(hole), getTeamBScore(hole)) === 'tie'}
 					>
 						<input
 							type="text"
@@ -159,6 +143,11 @@
 							disabled={isLocked}
 							on:input={(e) => handleScoreChange('A', hole, e)}
 						/>
+						<div class="text-xs text-gray-400">
+							Gross: {getTeamAScore(hole)}
+							<br />
+							Net: {calculateNetScore(scores, teamAPlayer1?.player_id, hole)}
+						</div>
 						<!-- Sync status indicator -->
 						{#if typeof getSyncStatus === 'function'}
 							{#if getSyncStatus(teamAPlayer1?.player_id, hole) === 'pending'}
@@ -174,14 +163,14 @@
 			</tr>
 
 			<!-- Team B Row -->
-			<tr class="bg-green-50">
-				<td class="sticky left-0 border bg-green-50 px-2 py-1 font-semibold">
+			<tr class="bg-red-50">
+				<td class="sticky left-0 border bg-red-50 px-2 py-1 font-semibold">
 					Team B
 					{#if teamBPlayer1}
 						<div class="text-xs">
-							{teamBPlayer1.username || 'Player 1'}
-							{#if teamBPlayer2}
-								& {teamBPlayer2.username || 'Player 2'}
+							{teamBPlayer1.username || teamBPlayer1.player?.username || 'Player 1'}
+							{#if safeTeamBPlayers[1]}
+								& {safeTeamBPlayers[1].username || safeTeamBPlayers[1].player?.username || 'Player 2'}
 							{/if}
 						</div>
 					{/if}
@@ -189,8 +178,8 @@
 				{#each safeHoles as hole (hole)}
 					<td
 						class="border px-1 py-1 text-center"
-						class:bg-green-100={getWinningTeam(hole) === 'B'}
-						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
+						class:bg-green-100={getWinningTeam(getTeamAScore(hole), getTeamBScore(hole)) === 'B'}
+						class:bg-yellow-100={getWinningTeam(getTeamAScore(hole), getTeamBScore(hole)) === 'tie'}
 					>
 						<input
 							type="text"
@@ -199,6 +188,11 @@
 							disabled={isLocked}
 							on:input={(e) => handleScoreChange('B', hole, e)}
 						/>
+						<div class="text-xs text-gray-400">
+							Gross: {getTeamBScore(hole)}
+							<br />
+							Net: {calculateNetScore(scores, teamBPlayer1?.player_id, hole)}
+						</div>
 						<!-- Sync status indicator -->
 						{#if typeof getSyncStatus === 'function'}
 							{#if getSyncStatus(teamBPlayer1?.player_id, hole) === 'pending'}

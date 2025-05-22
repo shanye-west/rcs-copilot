@@ -4,9 +4,7 @@
 		calculateNetScore,
 		calculateHandicapDots,
 		calculateBestNetScore,
-		getWinningTeam as determineWinningTeam,
-		type Player,
-		type Score
+		getWinningTeam
 	} from '$lib/utils/scoring';
 
 	export let teamAPlayers: Player[];
@@ -78,77 +76,47 @@
 			<tr>
 				<th class="border px-2 py-1">Hole</th>
 				{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
-					<th class="border px-2 py-1">
-						{#if p && p.player && p.player.username}
-							{p.player.username}
-						{:else if p && p.username}
-							{p.username}
-						{:else}
-							Player {p ? p.player_id : 'Unknown'}
-						{/if}
-					</th>
+					<th class="border px-2 py-1">{p.player?.username || `Player ${p.player_id}`}</th>
 				{/each}
 				<th class="border bg-blue-50 px-2 py-1">Best Ball (A)</th>
 				{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
-					<th class="border px-2 py-1">
-						{#if p && p.player && p.player.username}
-							{p.player.username}
-						{:else if p && p.username}
-							{p.username}
-						{:else}
-							Player {p ? p.player_id : 'Unknown'}
-						{/if}
-					</th>
+					<th class="border px-2 py-1">{p.player?.username || `Player ${p.player_id}`}</th>
 				{/each}
 				<th class="border bg-red-50 px-2 py-1">Best Ball (B)</th>
 			</tr>
 			<tr>
 				<th class="border px-2 py-1 text-xs text-gray-400">Dots</th>
 				{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
-					{#each holes as hole (hole)}
-						{#if hole === 1}
-							<th class="border px-2 py-1 text-xs text-gray-400" colspan={holes.length}>
-								{#if p && p.player}
-									{holes.map((h) => getDots(p.player, h)).join(' ')}
-								{:else}
-									-
-								{/if}
-							</th>
-						{/if}
-					{/each}
+					<th class="border px-2 py-1 text-xs text-gray-400">{holes.map((h) => calculateHandicapDots(p.player, h)).join(' ')}</th>
 				{/each}
 				<th class="border px-2 py-1"></th>
-				{#each teamBPlayers as p (p.player_id)}
-					{#each holes as hole (hole)}
-						{#if hole === 1}
-							<th class="border px-2 py-1 text-xs text-gray-400" colspan={holes.length}
-								>{holes.map((h) => getDots(p.player, h)).join(' ')}</th
-							>
-						{/if}
-					{/each}
+				{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
+					<th class="border px-2 py-1 text-xs text-gray-400">{holes.map((h) => calculateHandicapDots(p.player, h)).join(' ')}</th>
 				{/each}
 				<th class="border px-2 py-1"></th>
 			</tr>
 		</thead>
 		<tbody>
 			{#each holes as hole (hole)}
-				<tr>
+				<tr class={getWinningTeam(
+					calculateBestNetScore(teamAPlayers, scores, hole),
+					calculateBestNetScore(teamBPlayers, scores, hole)
+				) === 'A' ? 'bg-green-50' : getWinningTeam(
+					calculateBestNetScore(teamAPlayers, scores, hole),
+					calculateBestNetScore(teamBPlayers, scores, hole)
+				) === 'B' ? 'bg-red-50' : ''}>
 					<td class="border px-2 py-1 font-bold">{hole}</td>
-					{#each teamAPlayers as p (p.player_id)}
+					{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
 						<td class="border px-2 py-1">
 							{#if !isLocked}
-								{()
-									let inputValue = p.scores && p.scores[hole] !== undefined ? p.scores[hole] : '';
-								}
 								<input
 									type="number"
 									min="1"
 									max="20"
 									class="w-12 rounded border p-1 text-center"
-									value={inputValue}
+									value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
 									on:input={(e) => {
-										inputValue = e.target.value;
-										if (p.scores) p.scores[hole] = inputValue;
+										if (p.scores) p.scores[hole] = e.target.value;
 									}}
 									on:change={() => saveScore(p.player_id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
 								/>
@@ -163,15 +131,16 @@
 									{/if}
 								{/if}
 							{:else}
-								{getScore(p.player_id, hole)}
+								<div>
+									<span class="font-bold">Gross:</span> {p.scores && p.scores[hole]}
+									<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, p.player_id, hole)}
+								</div>
 							{/if}
-							<div class="text-xs text-gray-400">{getDots(p.player, hole)}</div>
+							<div class="text-xs text-gray-400">{calculateHandicapDots(p.player, hole)}</div>
 						</td>
 					{/each}
-					<td class="border bg-blue-50 px-2 py-1 font-bold"
-						>{getBestNetScore(teamAPlayers, hole)}</td
-					>
-					{#each teamBPlayers as p (p.player_id)}
+					<td class="border bg-blue-50 px-2 py-1 font-bold">{calculateBestNetScore(teamAPlayers, scores, hole)}</td>
+					{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
 						<td class="border px-2 py-1">
 							{#if !isLocked}
 								<input
@@ -179,17 +148,22 @@
 									min="1"
 									max="20"
 									class="w-12 rounded border p-1 text-center"
-									bind:value={p.scores ? p.scores[hole] : ''}
-									on:change={() => saveScore(p.player.id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
+									value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
+									on:input={(e) => {
+										if (p.scores) p.scores[hole] = e.target.value;
+									}}
+									on:change={() => saveScore(p.player_id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
 								/>
 							{:else}
-								{getScore(p.player.id, hole)}
+								<div>
+									<span class="font-bold">Gross:</span> {p.scores && p.scores[hole]}
+									<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, p.player_id, hole)}
+								</div>
 							{/if}
-							<div class="text-xs text-gray-400">{getDots(p.player, hole)}</div>
+							<div class="text-xs text-gray-400">{calculateHandicapDots(p.player, hole)}</div>
 						</td>
 					{/each}
-					<td class="border bg-red-50 px-2 py-1 font-bold">{getBestNetScore(teamBPlayers, hole)}</td
-					>
+					<td class="border bg-red-50 px-2 py-1 font-bold">{calculateBestNetScore(teamBPlayers, scores, hole)}</td>
 				</tr>
 			{/each}
 		</tbody>
