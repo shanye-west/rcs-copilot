@@ -76,6 +76,13 @@ const createAuthStore = () => {
 						error: null
 					});
 
+					// Redirect based on role
+					if (player.is_admin) {
+						goto('/admin');
+					} else {
+						goto('/');
+					}
+
 					return { success: true };
 				} else {
 					throw new Error('User data not returned from authentication');
