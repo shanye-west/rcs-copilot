@@ -69,8 +69,8 @@
 									class="w-12 rounded border p-1 text-center"
 									value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
 									on:input={(e) => {
-										const val = e.target.value;
-										if (p.scores) p.scores[hole] = val;
+										const target = e.target as HTMLInputElement | null;
+										if (target && p.scores) p.scores[hole] = target.value;
 									}}
 									on:change={() =>
 										saveScore(

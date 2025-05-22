@@ -145,7 +145,8 @@
 								class="w-12 rounded border p-1 text-center"
 								value={getTeamScore(teamAPlayers, hole) || ''}
 								on:change={(e) => {
-									const val = parseInt(e.target.value, 10);
+									const target = e.target as HTMLInputElement | null;
+									const val = target ? parseInt(target.value, 10) : NaN;
 									if (!isNaN(val) && teamALeader?.id) {
 										saveScore(teamALeader.id, hole, val);
 									} else if (teamALeader?.id) {
@@ -178,7 +179,8 @@
 								class="w-12 rounded border p-1 text-center"
 								value={getTeamScore(teamBPlayers, hole) || ''}
 								on:change={(e) => {
-									const val = parseInt(e.target.value, 10);
+									const target = e.target as HTMLInputElement | null;
+									const val = target ? parseInt(target.value, 10) : NaN;
 									if (!isNaN(val) && teamBLeader?.id) {
 										saveScore(teamBLeader.id, hole, val);
 									} else if (teamBLeader?.id) {

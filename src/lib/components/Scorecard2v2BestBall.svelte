@@ -26,17 +26,16 @@
 	$: safeHoles = holes || [];
 
 	onMount(() => {
-		// ensure each player has a scores object and populate from incoming scores
 		teamAPlayers.forEach((p) => {
 			if (!p.scores) p.scores = {};
 			holes.forEach((h) => {
-				if (p.scores[h] === undefined) p.scores[h] = '';
+				if (p.scores && p.scores[h] === undefined) p.scores[h] = '';
 			});
 		});
 		teamBPlayers.forEach((p) => {
 			if (!p.scores) p.scores = {};
 			holes.forEach((h) => {
-				if (p.scores[h] === undefined) p.scores[h] = '';
+				if (p.scores && p.scores[h] === undefined) p.scores[h] = '';
 			});
 		});
 		scores.forEach((s) => {
@@ -138,26 +137,33 @@
 					{#each teamAPlayers as p (p.player_id)}
 						<td class="border px-2 py-1">
 							{#if !isLocked}
+								{()
+									let inputValue = p.scores && p.scores[hole] !== undefined ? p.scores[hole] : '';
+								}
 								<input
 									type="number"
 									min="1"
 									max="20"
 									class="w-12 rounded border p-1 text-center"
-									bind:value={p.scores[hole]}
-									on:change={() => saveScore(p.player_id, hole, p.scores[hole])}
+									value={inputValue}
+									on:input={(e) => {
+										inputValue = e.target.value;
+										if (p.scores) p.scores[hole] = inputValue;
+									}}
+									on:change={() => saveScore(p.player_id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
 								/>
 								<!-- Sync status indicator -->
 								{#if typeof getSyncStatus === 'function'}
-									{#if getSyncStatus(p.player.id, hole) === 'pending'}
+									{#if getSyncStatus(p.player_id, hole) === 'pending'}
 										<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-									{:else if getSyncStatus(p.player.id, hole) === 'synced'}
+									{:else if getSyncStatus(p.player_id, hole) === 'synced'}
 										<span title="Synced" class="ml-1 text-green-600">✔️</span>
-									{:else if getSyncStatus(p.player.id, hole) === 'failed'}
+									{:else if getSyncStatus(p.player_id, hole) === 'failed'}
 										<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
 									{/if}
 								{/if}
 							{:else}
-								{getScore(p.player.id, hole)}
+								{getScore(p.player_id, hole)}
 							{/if}
 							<div class="text-xs text-gray-400">{getDots(p.player, hole)}</div>
 						</td>
@@ -173,8 +179,8 @@
 									min="1"
 									max="20"
 									class="w-12 rounded border p-1 text-center"
-									bind:value={p.scores[hole]}
-									on:change={() => saveScore(p.player.id, hole, p.scores[hole])}
+									bind:value={p.scores ? p.scores[hole] : ''}
+									on:change={() => saveScore(p.player.id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
 								/>
 							{:else}
 								{getScore(p.player.id, hole)}

@@ -7,6 +7,7 @@
 	import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
 	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
 	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
+	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 	import { get } from 'svelte/store';
 	import { offlineStore } from '$lib/stores/offline-store';
 	import { createScoreSaver, createSyncStatusChecker } from '$lib/utils/offline-integration';
@@ -81,7 +82,10 @@
 	// Create helpers for offline integration
 	const matchId = match?.id || '';
 	const saveScoreHandler = createScoreSaver(matchId);
-	const getSyncStatusHandler = createSyncStatusChecker(matchId);
+	const getSyncStatusHandler = (playerId: string | undefined, hole: number) => {
+	  if (!playerId) return undefined;
+	  return createSyncStatusChecker(matchId)(playerId, hole);
+	};
 
 	// Save score to Supabase with offline support
 	async function saveScore(playerId: string, hole: number, value: number | null) {
@@ -96,16 +100,18 @@
 		// (the offline store will handle syncing, but this gives immediate feedback)
 		if (navigator.onLine) {
 			try {
-				const { error } = await supabase.from('match_scores').upsert({
+				const upsertPayload = {
 					match_id: matchId,
 					player_id: playerId,
 					hole_number: hole,
 					gross_score: value,
-					updated_by: authState.user.id,
+					updated_by: authState.user?.id ?? '',
 					updated_at: new Date().toISOString()
-				});
-
-				if (!error) {
+				};
+				const { error } = await supabase.from('match_scores').upsert(upsertPayload);
+				if (error) {
+					console.error('Supabase upsert error:', error, upsertPayload);
+				} else {
 					// Mark as synced in offline store
 					offlineStore.markSynced(playerId, hole, matchId);
 				}

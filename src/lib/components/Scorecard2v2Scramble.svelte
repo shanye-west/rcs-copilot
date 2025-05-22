@@ -39,21 +39,17 @@
 	onMount(() => {
 		// Initialize scores object for each player if it doesn't exist
 		safeTeamAPlayers.forEach((player) => {
-			if (!player.scores) {
-				player.scores = {};
-				safeHoles.forEach((hole) => {
-					player.scores[hole] = '';
-				});
-			}
+			if (!player.scores) player.scores = {};
+			safeHoles.forEach((hole) => {
+				if (player.scores && player.scores[hole] === undefined) player.scores[hole] = '';
+			});
 		});
 
 		safeTeamBPlayers.forEach((player) => {
-			if (!player.scores) {
-				player.scores = {};
-				safeHoles.forEach((hole) => {
-					player.scores[hole] = '';
-				});
-			}
+			if (!player.scores) player.scores = {};
+			safeHoles.forEach((hole) => {
+				if (player.scores && player.scores[hole] === undefined) player.scores[hole] = '';
+			});
 		});
 
 		// Populate initial values from incoming scores prop

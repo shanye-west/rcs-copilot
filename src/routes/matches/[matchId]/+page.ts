@@ -12,36 +12,47 @@ export const load = async ({ params }) => {
 		.single();
 
 	if (matchError || !match) {
-		throw error(404, 'Match not found');
+		console.error('Match fetch error:', matchError);
+		throw error(500, `Match not found: ${matchError?.message || 'No match'}`);
 	}
 
 	// Fetch teams
-	const { data: teams } = await supabase.from('teams').select('*');
+	const { data: teams, error: teamsError } = await supabase.from('teams').select('*');
+	if (teamsError || !teams) {
+		console.error('Teams fetch error:', teamsError);
+		throw error(500, `Teams fetch error: ${teamsError?.message || 'No teams'}`);
+	}
 
 	// Fetch match type
-	const { data: matchType } = await supabase
+	const { data: matchType, error: matchTypeError } = await supabase
 		.from('match_types')
 		.select('*')
 		.eq('id', match.match_type_id)
 		.single();
+	if (matchTypeError || !matchType) {
+		console.error('Match type fetch error:', matchTypeError);
+		throw error(500, `Match type fetch error: ${matchTypeError?.message || 'No match type'}`);
+	}
 
 	// Fetch match players
 	const { data: matchPlayers, error: matchPlayersError } = await supabase
 		.from('match_players')
 		.select('*')
 		.eq('match_id', matchId);
-
-	if (matchPlayersError) {
-		console.error('Error fetching match players:', matchPlayersError);
+	if (matchPlayersError || !matchPlayers) {
+		console.error('Match players fetch error:', matchPlayersError);
+		throw error(500, `Match players fetch error: ${matchPlayersError?.message || 'No match players'}`);
 	}
 
 	// Fetch player details in a separate query
 	let playerDetails = [];
 	if (matchPlayers && matchPlayers.length > 0) {
 		const playerIds = matchPlayers.map((mp) => mp.player_id);
-
-		const { data: players } = await supabase.from('players').select('*').in('id', playerIds);
-
+		const { data: players, error: playersError } = await supabase.from('players').select('*').in('id', playerIds);
+		if (playersError) {
+			console.error('Players fetch error:', playersError);
+			throw error(500, `Players fetch error: ${playersError.message}`);
+		}
 		playerDetails = players || [];
 	}
 
@@ -73,8 +84,14 @@ export const load = async ({ params }) => {
 			const teamBId = uniqueTeamIds[1];
 			teamBPlayers = enhancedMatchPlayers.filter((mp) => mp.team_id === teamBId);
 		}
-	} // Fetch scores for this match
-	const { data: scores } = await supabase.from('match_scores').select('*').eq('match_id', matchId);
+	}
+
+	// Fetch scores for this match
+	const { data: scores, error: scoresError } = await supabase.from('match_scores').select('*').eq('match_id', matchId);
+	if (scoresError || !scores) {
+		console.error('Scores fetch error:', scoresError);
+		throw error(500, `Scores fetch error: ${scoresError?.message || 'No scores'}`);
+	}
 
 	return {
 		match,
