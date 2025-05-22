@@ -29,6 +29,9 @@ let isLoadingMatches = false;
 let newMatchName = '';
 let addMatchError: string | null = null;
 
+// --- TEAM ASSIGNMENT TO MATCHES ---
+let assignTeamError: string | null = null;
+
 onMount(async () => {
   isLoading = true;
   const id = $page.params.tournamentId;
@@ -287,6 +290,18 @@ async function deleteMatch(matchId: string, roundId: string) {
   await supabase.from('matches').delete().eq('id', matchId);
   await loadMatches();
 }
+
+async function assignTeamsToMatch(matchId: string, teamAId: string, teamBId: string) {
+  assignTeamError = null;
+  if (!tournament) return;
+  // Update the match with selected teams
+  const { error: err } = await supabase.from('matches').update({
+    team_a_id: teamAId,
+    team_b_id: teamBId
+  }).eq('id', matchId);
+  if (err) assignTeamError = err.message;
+  await loadMatches();
+}
 </script>
 
 <section class="mx-auto max-w-3xl p-4">
@@ -415,13 +430,34 @@ async function deleteMatch(matchId: string, roundId: string) {
         {/if}
         <ul>
           {#each matchesByRound[round.id] || [] as match}
-            <li class="mb-2 flex items-center gap-2">
-              <span>{match.name}</span>
-              <button class="text-xs text-red-600" on:click={() => deleteMatch(match.id, round.id)}>Delete</button>
+            <li class="mb-2 flex flex-col gap-2 border-b pb-2">
+              <div class="flex items-center gap-2">
+                <span>{match.name}</span>
+                <button class="text-xs text-red-600" on:click={() => deleteMatch(match.id, round.id)}>Delete</button>
+              </div>
+              <div class="flex items-center gap-2">
+                <label class="text-xs">Team A:</label>
+                <select class="border rounded px-2 py-1" bind:value={match.team_a_id} on:change={e => assignTeamsToMatch(match.id, e.target.value, match.team_b_id)}>
+                  <option value="">Select Team</option>
+                  {#each teams as team}
+                    <option value={team.id}>{team.name}</option>
+                  {/each}
+                </select>
+                <label class="text-xs">Team B:</label>
+                <select class="border rounded px-2 py-1" bind:value={match.team_b_id} on:change={e => assignTeamsToMatch(match.id, match.team_a_id, e.target.value)}>
+                  <option value="">Select Team</option>
+                  {#each teams as team}
+                    <option value={team.id}>{team.name}</option>
+                  {/each}
+                </select>
+              </div>
             </li>
           {/each}
         </ul>
       </div>
     {/each}
+  {/if}
+  {#if assignTeamError}
+    <div class="text-red-600 mb-2">{assignTeamError}</div>
   {/if}
 </section>
