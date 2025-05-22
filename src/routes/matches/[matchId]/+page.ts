@@ -8,7 +8,7 @@ export async function load({ params }) {
 		matchPlayers = [],
 		scores = [],
 		course = null;
-	let error = null;
+	const errors: string[] = [];
 
 	try {
 		const { data: matchData, error: matchError } = await supabase
@@ -17,7 +17,7 @@ export async function load({ params }) {
 			.eq('id', matchId)
 			.single();
 		if (matchError || !matchData) {
-			error = 'Failed to load match data.';
+			errors.push('Failed to load match data.');
 			console.error('Match fetch error:', matchError);
 		} else {
 			match = matchData;
@@ -25,7 +25,7 @@ export async function load({ params }) {
 
 		const { data: teamsData, error: teamsError } = await supabase.from('teams').select('*');
 		if (teamsError) {
-			error = error || 'Failed to load teams.';
+			errors.push('Failed to load teams.');
 			console.error('Teams fetch error:', teamsError);
 		} else {
 			teams = teamsData || [];
@@ -37,7 +37,7 @@ export async function load({ params }) {
 			.eq('id', match?.match_type_id)
 			.single();
 		if (matchTypeError) {
-			error = error || 'Failed to load match type.';
+			errors.push('Failed to load match type.');
 			console.error('Match type fetch error:', matchTypeError);
 		} else {
 			matchType = matchTypeData;
@@ -48,7 +48,7 @@ export async function load({ params }) {
 			.select('*, player:players(*)')
 			.eq('match_id', matchId);
 		if (matchPlayersError) {
-			error = error || 'Failed to load match players.';
+			errors.push('Failed to load match players.');
 			console.error('Match players fetch error:', matchPlayersError);
 		} else {
 			matchPlayers = matchPlayersData || [];
@@ -56,7 +56,7 @@ export async function load({ params }) {
 
 		const { data: scoresData, error: scoresError } = await supabase.from('match_scores').select('*').eq('match_id', matchId);
 		if (scoresError) {
-			error = error || 'Failed to load scores.';
+			errors.push('Failed to load scores.');
 			console.error('Scores fetch error:', scoresError);
 		} else {
 			scores = scoresData || [];
@@ -69,16 +69,16 @@ export async function load({ params }) {
 				.eq('id', match.course_id)
 				.single();
 			if (courseError) {
-				error = error || 'Failed to load course.';
+				errors.push('Failed to load course.');
 				console.error('Course fetch error:', courseError);
 			} else {
 				course = courseData;
 			}
 		}
 	} catch (err) {
-		error = 'Unexpected error loading match data.';
+		errors.push('Unexpected error loading match data.');
 		console.error('Unexpected match load error:', err);
 	}
 
-	return { match, teams, matchType, matchPlayers, scores, course, error };
+	return { match, teams, matchType, matchPlayers, scores, course, error: errors.length ? errors : null };
 }
