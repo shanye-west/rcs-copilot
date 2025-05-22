@@ -11,6 +11,13 @@
 	let newTournamentName = '';
 	let addError: string | null = null;
 
+	let username = '';
+	let fullName = '';
+	let pin = '';
+	let isAdmin = false;
+	let success = '';
+	let loading = false;
+
 	async function addTournament() {
 		addError = null;
 		if (!newTournamentName.trim()) {
@@ -36,6 +43,14 @@
 		if (!confirm('Delete this tournament? This will also delete all associated rounds and matches.')) return;
 		await supabase.from('tournaments').delete().eq('id', tournamentId);
 		tournaments = tournaments.filter(t => t.id !== tournamentId);
+	}
+
+	async function createUser() {
+		loading = true;
+		success = '';
+		// Implement user creation logic here or leave as a stub
+		// ...
+		loading = false;
 	}
 </script>
 
