@@ -147,8 +147,8 @@ test.describe('Sportsbook Flow', () => {
 	});
 });
 
-// Skip this test if not run in admin mode with a test account
-test.describe.skip('Admin Flow', () => {
+// Admin Flow
+test.describe('Admin Flow', () => {
 	test.beforeEach(async ({ page }) => {
 		// Go to the login page with admin credentials
 		await page.goto('/login');
@@ -170,34 +170,54 @@ test.describe.skip('Admin Flow', () => {
 		// Navigate to admin page
 		await page.goto('/admin');
 
-		// Look for match management section
-		await expect(page.getByRole('heading', { name: /Matches/i })).toBeVisible();
-
-		// Find a match to lock/unlock
-		const lockButtons = page.getByRole('button', { name: /lock|unlock/i });
-
-		if ((await lockButtons.count()) > 0) {
-			// Note the current state
-			const initialButtonText = await lockButtons.first().innerText();
-
-			// Click to toggle state
-			await lockButtons.first().click();
-
-			// Wait for operation to complete
-			await page.waitForTimeout(1000);
-
-			// Reload page to verify state change persisted
-			await page.reload();
-
-			// Get the button text after reload
-			const newLockButton = page.getByRole('button', { name: /lock|unlock/i }).first();
-			const newButtonText = await newLockButton.innerText();
-
-			// Button text should be different after toggling
-			expect(initialButtonText).not.toBe(newButtonText);
-		} else {
-			// No matches to lock/unlock - skip test
-			test.skip();
+		// Go to the first tournament
+		const tournamentLinks = page.locator('a[href^="/admin/tournament/"]');
+		if (await tournamentLinks.count() === 0) {
+			console.warn('No tournaments available');
+			return;
 		}
+		await tournamentLinks.first().click();
+		await page.waitForLoadState('networkidle');
+
+		// Go to the first round
+		const roundLinks = page.locator('a[href^="/admin/round/"]');
+		if (await roundLinks.count() === 0) {
+			console.warn('No rounds available');
+			return;
+		}
+		await roundLinks.first().click();
+		await page.waitForLoadState('networkidle');
+
+		// Go to the first match
+		const matchLinks = page.locator('a[href^="/admin/match/"]');
+		if (await matchLinks.count() === 0) {
+			console.warn('No matches available');
+			return;
+		}
+		await matchLinks.first().click();
+		await page.waitForLoadState('networkidle');
+
+		// Look for lock/unlock button
+		const lockButton = page.getByRole('button', { name: /lock|unlock/i }).first();
+		if (!(await lockButton.isVisible())) {
+			console.warn('No lock/unlock button found');
+			return;
+		}
+
+		// Note the current state
+		const initialButtonText = await lockButton.innerText();
+
+		// Click to toggle state
+		await lockButton.click();
+		await page.waitForTimeout(1000);
+
+		// Reload page to verify state change persisted
+		await page.reload();
+		await page.waitForLoadState('networkidle');
+
+		const newLockButton = page.getByRole('button', { name: /lock|unlock/i }).first();
+		const newButtonText = await newLockButton.innerText();
+
+		expect(initialButtonText).not.toBe(newButtonText);
 	});
 });
