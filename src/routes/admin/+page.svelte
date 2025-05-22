@@ -1,66 +1,41 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { supabase } from '$lib/supabase';
+	import { error } from '@sveltejs/kit';
+	import { page } from '$app/stores';
 
-	let username = '';
-	let fullName = '';
-	let pin = '';
-	let isAdmin = false;
-	let loading = false;
-	let error = '';
-	let success = '';
+	export let data;
 
-	async function createUser() {
-		if (!username || !fullName || !pin) {
-			error = 'All fields are required';
+	let tournaments = data.tournaments || [];
+	let isLoading = false;
+	let newTournamentName = '';
+	let addError: string | null = null;
+
+	async function addTournament() {
+		addError = null;
+		if (!newTournamentName.trim()) {
+			addError = 'Tournament name required.';
 			return;
 		}
 
-		if (pin.length !== 4 || !/^\d+$/.test(pin)) {
-			error = 'PIN must be 4 digits';
-			return;
+		const { error: err } = await supabase.from('tournaments').insert({
+			name: newTournamentName.trim()
+		});
+
+		if (err) {
+			addError = err.message;
+		} else {
+			newTournamentName = '';
+			// Reload tournaments
+			const { data: t, error: err2 } = await supabase.from('tournaments').select('*');
+			if (!err2) tournaments = t || [];
 		}
+	}
 
-		loading = true;
-		error = '';
-		success = '';
-
-		try {
-			// Convert username to email format for Supabase auth
-			const email = `${username}@rowdycup.app`;
-
-			// Pad the PIN to meet the 6-character minimum requirement
-			// Supabase requires minimum 6-character passwords, but our app uses 4-digit PINs
-			const paddedPin = pin.padEnd(6, '0');
-
-			// Create auth user
-			const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-				email,
-				password: paddedPin,
-				email_confirm: true
-			});
-
-			if (authError) throw authError;
-
-			// Create player record
-			const { error: playerError } = await supabase.from('players').insert({
-				id: authData.user.id,
-				username,
-				full_name: fullName,
-				is_admin: isAdmin
-			});
-
-			if (playerError) throw playerError;
-
-			success = `User ${username} created successfully`;
-			username = '';
-			fullName = '';
-			pin = '';
-			isAdmin = false;
-		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to create user';
-		} finally {
-			loading = false;
-		}
+	async function deleteTournament(tournamentId: string) {
+		if (!confirm('Delete this tournament? This will also delete all associated rounds and matches.')) return;
+		await supabase.from('tournaments').delete().eq('id', tournamentId);
+		tournaments = tournaments.filter(t => t.id !== tournamentId);
 	}
 </script>
 
@@ -140,6 +115,34 @@
 					{loading ? 'Creating...' : 'Create User'}
 				</button>
 			</form>
+		</div>
+	</div>
+
+	<div class="border-t border-gray-200">
+		<div class="px-4 py-5 sm:p-6">
+			<h2 class="text-lg font-medium text-gray-900">Tournament Management</h2>
+
+			<form class="mb-4 flex gap-2" on:submit|preventDefault={addTournament}>
+				<input class="border rounded px-2 py-1 flex-grow" placeholder="New tournament name" bind:value={newTournamentName} />
+				<button class="bg-blue-600 text-white px-3 py-1 rounded" type="submit">Add Tournament</button>
+			</form>
+
+			{#if addError}
+				<div class="text-red-600 mb-2">{addError}</div>
+			{/if}
+
+			{#if data.error}
+				<div class="text-red-600">{data.error}</div>
+			{:else}
+				<ul>
+					{#each tournaments as t}
+						<li class="mb-2 flex items-center gap-2">
+							<a class="text-blue-700 underline" href={`/admin/tournament/${t.id}`}>{t.name}</a>
+							<button class="text-xs text-red-600" on:click={() => deleteTournament(t.id)}>Delete</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
 		</div>
 	</div>
 </div>
