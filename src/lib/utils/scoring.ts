@@ -73,46 +73,44 @@ export function calculateHandicapDots(
 	hole: number,
 	course?: Course
 ): string {
-	// Case 1: If player has explicitly defined handicap strokes per hole, use those
+	// 1. If player has explicit per-hole strokes, use them directly
 	if (player.handicap_strokes && player.handicap_strokes.length === 18) {
 		const strokesForHole = player.handicap_strokes[hole - 1];
 		return strokesForHole > 0 ? '•'.repeat(strokesForHole) : '';
 	}
 
-	// Case 2: No handicap means no strokes
+	// 2. No handicap = no strokes
 	const handicap = player.handicap || 0;
 	if (handicap === 0) return '';
 
-	// Determine hole difficulty (stroke index)
-	// Lower index = harder hole = gets handicap strokes first
-	let holeStrokeIndex = hole; // Default: assume holes are numbered by difficulty 
+	// 3. Determine hole difficulty (stroke index)
+	// Lower index = harder hole = gets strokes first
+	let strokeIndex = hole; // Default: hole number as difficulty
 	if (course?.handicap_per_hole?.length === 18) {
-		// Use course-specific hole difficulty ranking
-		holeStrokeIndex = course.handicap_per_hole[hole - 1];
+		strokeIndex = course.handicap_per_hole[hole - 1];
 	}
 
-	// Calculate dots (strokes) for this hole
-	let dots = 0;
-	
-	// First allocation (handicaps 1-18)
-	// If hole difficulty index ≤ handicap, player gets a stroke
-	if (holeStrokeIndex <= handicap && handicap > 0) {
-		dots = 1;
+	// 4. Calculate base strokes (for handicaps 1-18)
+	let baseStrokes = 0;
+	if (handicap > 0 && strokeIndex <= Math.min(handicap, 18)) {
+		baseStrokes = 1;
 	}
-	
-	// Second allocation (handicaps > 18)
-	// For handicaps above 18, additional strokes are assigned to hardest holes first
+
+	// 5. Calculate extra strokes for handicaps > 18
+	let extraStrokes = 0;
 	if (handicap > 18) {
-		const extraHandicap = handicap - 18;
-		
-		// If hole's stroke index is less than or equal to the extra handicap,
-		// player gets an additional stroke on this hole
-		if (holeStrokeIndex <= extraHandicap) {
-			dots += 1;
+		const extra = handicap - 18;
+		// For handicaps above 18, player gets a second stroke on the hardest 'extra' holes
+		if (strokeIndex <= extra) {
+			extraStrokes = 1;
 		}
 	}
 
-	return dots > 0 ? '•'.repeat(dots) : '';
+	// 6. Total dots = base + extra
+	const totalDots = baseStrokes + extraStrokes;
+
+	// 7. Return dot string for UI
+	return totalDots > 0 ? '•'.repeat(totalDots) : '';
 }
 
 /**
