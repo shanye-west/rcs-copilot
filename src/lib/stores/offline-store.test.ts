@@ -206,4 +206,54 @@ describe('Offline Store', () => {
 		expect(finalState.scores.length).toBe(1);
 		expect(finalState.scores[0].player_id).toBe('456');
 	});
+
+	test('should deduplicate scores and keep only the most recent for each player/hole/match combination', () => {
+		// Simulate production environment for deduplication logic
+		const originalProcess = global.process;
+		global.process = { env: { NODE_ENV: 'production' } };
+
+		const now = Date.now();
+		const earlier = now - 10000;
+		const muchEarlier = now - 20000;
+
+		// Add multiple scores for the same key with different timestamps and sync status
+		offlineStore.reset();
+		const key = { player_id: 'p1', hole_number: 1, match_id: 'm1' };
+		// Oldest unsynced
+		offlineStore.addScore({ ...key, score: 4 });
+		let state = get(offlineStore);
+		state.scores[0].timestamp = muchEarlier;
+		state.scores[0].synced = false;
+		// Newer synced
+		offlineStore.addScore({ ...key, score: 5 });
+		state = get(offlineStore);
+		state.scores[1].timestamp = earlier;
+		state.scores[1].synced = true;
+		// Newest unsynced
+		offlineStore.addScore({ ...key, score: 6 });
+		state = get(offlineStore);
+		state.scores[2].timestamp = now;
+		state.scores[2].synced = false;
+
+		// Add a different key to ensure it's not affected
+		offlineStore.addScore({ player_id: 'p2', hole_number: 2, match_id: 'm2', score: 7 });
+		state = get(offlineStore);
+		state.scores[3].timestamp = now;
+		state.scores[3].synced = false;
+
+		// Run cleanup
+		offlineStore.cleanupSyncedScores();
+		const finalState = get(offlineStore);
+
+		// Only the most recent for each key should remain
+		const deduped = finalState.scores.filter(s => s.player_id === 'p1' && s.hole_number === 1 && s.match_id === 'm1');
+		expect(deduped).toHaveLength(1);
+		expect(deduped[0].score).toBe(6);
+		// The other key should still be present
+		const other = finalState.scores.find(s => s.player_id === 'p2' && s.hole_number === 2 && s.match_id === 'm2');
+		expect(other).toBeDefined();
+
+		// Restore process
+		global.process = originalProcess;
+	});
 });
