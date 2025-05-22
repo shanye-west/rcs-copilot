@@ -4,87 +4,64 @@ import { supabase } from '$lib/supabase';
 import { error } from '@sveltejs/kit';
 
 export async function load(event) {
-  // First ensure only admins can access this route
-  await protectAdminRoute(event);
-  
   const matchId = event.params.matchId;
-  
+  let match = null, teams = [], matchType = null, matchPlayers = [], scores = [], course = null;
+  let error = null;
+
   try {
-    // Get match details
-    const { data: match, error: matchError } = await supabase
-      .from('matches')
-      .select('*')
-      .eq('id', matchId)
-      .single();
-      
-    if (matchError) throw matchError;
-    
-    // Get teams
-    const { data: teams, error: teamsError } = await supabase
-      .from('teams')
-      .select('*');
-      
-    if (teamsError) throw teamsError;
-    
-    // Get match type
-    const { data: matchType, error: matchTypeError } = await supabase
-      .from('match_types')
-      .select('*')
-      .eq('id', match.match_type_id)
-      .single();
-      
-    if (matchTypeError) throw matchTypeError;
-    
-    // Get match players
-    const { data: matchPlayers, error: matchPlayersError } = await supabase
-      .from('match_players')
-      .select('*, player:players(*)')
-      .eq('match_id', matchId);
-      
-    if (matchPlayersError) throw matchPlayersError;
-    
-    // Get scores
-    const { data: scores, error: scoresError } = await supabase
-      .from('match_scores')
-      .select('*')
-      .eq('match_id', matchId);
-      
-    if (scoresError) throw scoresError;
-    
-    // Get course if available
-    let course = null;
-    if (match.course_id) {
-      const { data: courseData, error: courseError } = await supabase
-        .from('courses')
-        .select('*')
-        .eq('id', match.course_id)
-        .single();
-        
-      if (!courseError) {
+    const { data: matchData, error: matchError } = await supabase.from('matches').select('*').eq('id', matchId).single();
+    if (matchError || !matchData) {
+      error = 'Failed to load match data.';
+      console.error('Match fetch error:', matchError);
+    } else {
+      match = matchData;
+    }
+
+    const { data: teamsData, error: teamsError } = await supabase.from('teams').select('*');
+    if (teamsError) {
+      error = error || 'Failed to load teams.';
+      console.error('Teams fetch error:', teamsError);
+    } else {
+      teams = teamsData || [];
+    }
+
+    const { data: matchTypeData, error: matchTypeError } = await supabase.from('match_types').select('*').eq('id', match?.match_type_id).single();
+    if (matchTypeError) {
+      error = error || 'Failed to load match type.';
+      console.error('Match type fetch error:', matchTypeError);
+    } else {
+      matchType = matchTypeData;
+    }
+
+    const { data: matchPlayersData, error: matchPlayersError } = await supabase.from('match_players').select('*, player:players(*)').eq('match_id', matchId);
+    if (matchPlayersError) {
+      error = error || 'Failed to load match players.';
+      console.error('Match players fetch error:', matchPlayersError);
+    } else {
+      matchPlayers = matchPlayersData || [];
+    }
+
+    const { data: scoresData, error: scoresError } = await supabase.from('match_scores').select('*').eq('match_id', matchId);
+    if (scoresError) {
+      error = error || 'Failed to load scores.';
+      console.error('Scores fetch error:', scoresError);
+    } else {
+      scores = scoresData || [];
+    }
+
+    if (match?.course_id) {
+      const { data: courseData, error: courseError } = await supabase.from('courses').select('*').eq('id', match.course_id).single();
+      if (courseError) {
+        error = error || 'Failed to load course.';
+        console.error('Course fetch error:', courseError);
+      } else {
         course = courseData;
       }
     }
-    
-    return {
-      match,
-      teams,
-      matchType,
-      matchPlayers,
-      scores: scores || [],
-      course,
-      error: null
-    };
-    
   } catch (err) {
-    console.error('Error loading match data:', err);
-    return {
-      match: null,
-      teams: [],
-      matchType: null,
-      matchPlayers: [],
-      scores: [],
-      course: null,
-      error: err.message || 'Failed to load match data'
-    };
+    error = 'Unexpected error loading match data.';
+    console.error('Unexpected match load error:', err);
   }
+
+  return { match, teams, matchType, matchPlayers, scores, course, error };
 }
