@@ -17,6 +17,7 @@
 		playerId: string,
 		hole: number
 	) => 'pending' | 'synced' | 'failed' | undefined;
+	export let course: Course | undefined;
 
 	// local state init
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -52,7 +53,7 @@
 
 	// Helper to get handicap dots for a player/hole
 	function getDots(player: Player['player'], hole: number): string {
-		return calculateHandicapDots(player, hole);
+		return calculateHandicapDots(player, hole, course);
 	}
 
 	// For each hole, get the best net score for each team
@@ -91,11 +92,11 @@
 			<tr>
 				<th class="border px-2 py-1 text-xs text-gray-400">Dots</th>
 				{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
-					<th class="border px-2 py-1 text-xs text-gray-400">{holes.map((h) => calculateHandicapDots(p.player, h)).join(' ')}</th>
+					<th class="border px-2 py-1 text-xs text-gray-400">{holes.map((h) => calculateHandicapDots(p.player, h, course)).join(' ')}</th>
 				{/each}
 				<th class="border px-2 py-1"></th>
 				{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
-					<th class="border px-2 py-1 text-xs text-gray-400">{holes.map((h) => calculateHandicapDots(p.player, h)).join(' ')}</th>
+					<th class="border px-2 py-1 text-xs text-gray-400">{holes.map((h) => calculateHandicapDots(p.player, h, course)).join(' ')}</th>
 				{/each}
 				<th class="border px-2 py-1"></th>
 			</tr>
@@ -135,7 +136,7 @@
 									<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, p.player_id, hole)}
 								</div>
 							{/if}
-							<div class="text-xs text-gray-400">{calculateHandicapDots(p.player, hole)}</div>
+							<div class="text-xs text-gray-400">{calculateHandicapDots(p.player, hole, course)}</div>
 						</td>
 					{/each}
 					<td class="border bg-blue-50 px-2 py-1 font-bold">{calculateBestNetScore(teamAPlayers, scores, hole)}</td>
@@ -160,7 +161,7 @@
 									<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, p.player_id, hole)}
 								</div>
 							{/if}
-							<div class="text-xs text-gray-400">{calculateHandicapDots(p.player, hole)}</div>
+							<div class="text-xs text-gray-400">{calculateHandicapDots(p.player, hole, course)}</div>
 						</td>
 					{/each}
 					<td class="border bg-red-50 px-2 py-1 font-bold">{calculateBestNetScore(teamBPlayers, scores, hole)}</td>

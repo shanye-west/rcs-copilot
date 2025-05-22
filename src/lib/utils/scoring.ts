@@ -21,6 +21,15 @@ export interface Score {
 	gross_score?: number;
 }
 
+export interface Course {
+	id: string;
+	name: string;
+	slope_rating: number;
+	course_rating: number;
+	par_per_hole: number[]; // 18 values
+	handicap_per_hole: number[]; // 18 values, 1=hardest
+}
+
 /**
  * Calculate gross scores (used for Scramble and Shamble formats)
  * This represents the actual strokes taken on a hole.
@@ -46,10 +55,14 @@ export function calculateNetScore(
 }
 
 /**
- * Calculate handicap dots for a player on a specific hole.
- * These are visual indicators showing where strokes should be applied.
+ * Calculate handicap dots for a player on a specific hole, using course data if available.
+ * If course is provided, use its handicap_per_hole for correct stroke allocation.
  */
-export function calculateHandicapDots(player: Player['player'], hole: number): string {
+export function calculateHandicapDots(
+	player: Player['player'],
+	hole: number,
+	course?: Course
+): string {
 	// If player has explicit handicap_strokes array, use it
 	if (player.handicap_strokes && player.handicap_strokes.length === 18) {
 		return player.handicap_strokes[hole - 1] > 0
@@ -57,14 +70,17 @@ export function calculateHandicapDots(player: Player['player'], hole: number): s
 			: '';
 	}
 
-	// Otherwise calculate based on handicap and assumed hole difficulty
 	const handicap = player.handicap || 0;
 	if (handicap === 0) return '';
 
-	// Assume holes are ordered by difficulty (1=hardest)
-	const strokeIndex = hole;
-	let dots = 0;
+	// Use course handicap allocation if available
+	let strokeIndex = hole;
+	if (course && course.handicap_per_hole && course.handicap_per_hole.length === 18) {
+		// Find the index for this hole (1-based)
+		strokeIndex = course.handicap_per_hole[hole - 1];
+	}
 
+	let dots = 0;
 	if (handicap >= 18) {
 		dots = 1;
 		if (handicap - 18 >= 18 - strokeIndex + 1) {
@@ -140,9 +156,14 @@ export function getWinningTeam(
 }
 
 /**
- * Calculate net score from gross score by applying handicap
+ * Calculate net score from gross score by applying handicap, using course data if available.
  */
-export function applyHandicap(grossScore: number, player: Player['player'], hole: number): number {
-	const dots = calculateHandicapDots(player, hole).length;
+export function applyHandicap(
+	grossScore: number,
+	player: Player['player'],
+	hole: number,
+	course?: Course
+): number {
+	const dots = calculateHandicapDots(player, hole, course).length;
 	return grossScore - dots;
 }

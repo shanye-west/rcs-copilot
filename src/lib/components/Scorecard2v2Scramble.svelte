@@ -29,6 +29,7 @@
 		playerId: string | undefined,
 		hole: number
 	) => 'pending' | 'synced' | 'failed' | undefined;
+	export let course: Course | undefined;
 
 	// Defensive: make sure arrays are never undefined and players have scores
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -102,6 +103,10 @@
 				saveScore(playerToUpdate.player_id, hole, parseInt(value));
 			}
 		}
+	}
+
+	function getDots(player: Player['player'], hole: number): string {
+		return calculateHandicapDots(player, hole, course);
 	}
 </script>
 

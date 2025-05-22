@@ -17,6 +17,7 @@
 		playerId: string,
 		hole: number
 	) => 'pending' | 'synced' | 'failed' | undefined;
+	export let course: Course | undefined;
 
 	// Team scores are represented by the first player of each team
 	$: teamALeader = teamAPlayers[0]?.player || null;
@@ -103,6 +104,10 @@
 				saveScore(playerToUpdate.player_id, hole, parseInt(value));
 			}
 		}
+	}
+
+	function getDots(player: Player['player'], hole: number): string {
+		return calculateHandicapDots(player, hole, course);
 	}
 </script>
 

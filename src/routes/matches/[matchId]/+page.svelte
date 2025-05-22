@@ -12,6 +12,7 @@
 	import { offlineStore } from '$lib/stores/offline-store';
 	import { createScoreSaver, createSyncStatusChecker } from '$lib/utils/offline-integration';
 	import type { Score } from '$lib/utils/scoring';
+	import type { Course } from '$lib/utils/scoring';
 
 	interface User {
 		id: string;
@@ -158,6 +159,7 @@
 			{isLocked}
 			{saveScore}
 			getSyncStatus={getSyncStatusHandler}
+			course={data.course}
 		/>
 	{:else if is2v2Scramble}
 		<Scorecard2v2Scramble
@@ -168,6 +170,7 @@
 			{isLocked}
 			{saveScore}
 			getSyncStatus={getSyncStatusHandler}
+			course={data.course}
 		/>
 	{:else if is2v2BestBall}
 		<Scorecard2v2BestBall
@@ -178,6 +181,7 @@
 			{isLocked}
 			{saveScore}
 			getSyncStatus={getSyncStatusHandler}
+			course={data.course}
 		/>
 	{:else if is2v2Shamble}
 		<Scorecard2v2Shamble
@@ -188,6 +192,7 @@
 			{isLocked}
 			{saveScore}
 			getSyncStatus={getSyncStatusHandler}
+			course={data.course}
 		/>
 	{:else if is4v4TeamScramble}
 		<Scorecard4v4TeamScramble
@@ -198,6 +203,7 @@
 			{isLocked}
 			{saveScore}
 			getSyncStatus={getSyncStatusHandler}
+			course={data.course}
 		/>
 	{:else}
 		<div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">

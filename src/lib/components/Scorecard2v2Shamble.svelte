@@ -32,6 +32,7 @@
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
 	export let getSyncStatus: (playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
+	export let course: Course | undefined;
 
 	// Defensive: make sure arrays are never undefined
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -135,6 +136,10 @@
 				saveScore(playerToUpdate.player_id, hole, parseInt(value));
 			}
 		}
+	}
+
+	function getDots(player: Player['player'], hole: number): string {
+		return calculateHandicapDots(player, hole, course);
 	}
 </script>
 
