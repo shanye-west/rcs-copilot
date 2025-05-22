@@ -1,85 +1,86 @@
 <script lang="ts">
-	import {
-		calculateGrossScore,
-		calculateNetScore,
-		getWinningTeam,
-		type Player,
-		type Score
-	} from '$lib/utils/scoring';
+	import { onMount } from 'svelte';
 
+	// Define interfaces for type safety
+	interface Player {
+		player_id: string;
+		team_id: string;
+		username?: string;
+		full_name?: string;
+		scores?: Record<number, string | number>;
+	}
+
+	interface ScoreData {
+		player_id: string;
+		hole_number: number;
+		gross_score?: number;
+		net_score?: number;
+	}
+
+	// Your props
 	export let teamAPlayers: Player[] = [];
 	export let teamBPlayers: Player[] = [];
-	export let scores: Score[] = [];
-	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
-	export let isLocked: boolean = false;
+	export const scores: ScoreData[] = [];
+	export let holes: number[] = [];
+	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: (
-		playerId: string,
-		hole: number
-	) => 'pending' | 'synced' | 'failed' | undefined;
-	export let course: Course | undefined;
 
-	// Team scores are represented by the first player of each team
-	$: teamALeader = teamAPlayers[0]?.player || null;
-	$: teamBLeader = teamBPlayers[0]?.player || null;
-
-	// Calculate match-play status
-	function calculateTeamMatchStatus() {
-		if (!teamALeader || !teamBLeader) return 'AS';
-
-		let teamAScoreTotal = 0;
-		let teamBScoreTotal = 0;
-
-		// This is a simplified status for scramble, just comparing total scores for now
-		// A more accurate match play status would compare hole by hole wins.
-		for (const hole of safeHoles) {
-			const scoreA = getTeamScore(teamAPlayers, hole);
-			const scoreB = getTeamScore(teamBPlayers, hole);
-
-			if (typeof scoreA === 'number') teamAScoreTotal += scoreA;
-			if (typeof scoreB === 'number') teamBScoreTotal += scoreB;
-		}
-
-		if (teamAScoreTotal < teamBScoreTotal) return 'A Up'; // Simplified
-		if (teamBScoreTotal < teamAScoreTotal) return 'B Up'; // Simplified
-		return 'AS';
-	}
-
-	// Ensure we have valid holes and players arrays
-	$: safeHoles = holes || Array.from({ length: 18 }, (_, i) => i + 1);
+	// Defensive: make sure arrays are never undefined and players have scores
 	$: safeTeamAPlayers = teamAPlayers || [];
 	$: safeTeamBPlayers = teamBPlayers || [];
+	$: safeHoles = holes || [];
 
-	// References to first players in each team (for scoring)
-	$: teamAPlayer1 = safeTeamAPlayers[0];
-	$: teamBPlayer1 = safeTeamBPlayers[0];
+	// Ensure each team has at least one representative for scoring
+	$: teamAPlayer1 = safeTeamAPlayers[0] || null;
+	$: teamBPlayer1 = safeTeamBPlayers[0] || null;
 
-	// Helper to get score for a team's hole
-	function getTeamScore(players: Player[], hole: number): number | string {
-		// In 4v4 Team Scramble, we use the first player's score as the team score
-		const leaderId = players[0]?.player?.id;
-		if (!leaderId) return '';
+	// Ensure each player has a scores object
+	onMount(() => {
+		// Initialize scores object for each player if it doesn't exist
+		safeTeamAPlayers.forEach((player) => {
+			if (!player.scores) {
+				player.scores = {};
+				safeHoles.forEach((hole) => {
+					player.scores[hole] = '';
+				});
+			}
+		});
 
-		const score = calculateGrossScore(scores, leaderId, hole);
-		return score !== undefined ? score : '';
-	}
+		safeTeamBPlayers.forEach((player) => {
+			if (!player.scores) {
+				player.scores = {};
+				safeHoles.forEach((hole) => {
+					player.scores[hole] = '';
+				});
+			}
+		});
+	});
 
-	// Safe score getters for direct score access
+	// Safe score getters
 	function getTeamAScore(hole: number): string | number {
 		if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
 		return teamAPlayer1.scores[hole] || '';
 	}
-
+	
 	function getTeamBScore(hole: number): string | number {
 		if (!teamBPlayer1 || !teamBPlayer1.scores) return '';
 		return teamBPlayer1.scores[hole] || '';
 	}
 
-	// Determine which team is winning on a hole
-	function getWinningTeamStatus(hole: number): 'A' | 'B' | 'tie' | null {
-		const teamAScore = calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole);
-		const teamBScore = calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole);
-		return getWinningTeam(teamAScore, teamBScore);
+	// Helper to determine which team is winning on a hole
+	function getWinningTeam(hole: number): string | null {
+		const scoreA = getTeamAScore(hole);
+		const scoreB = getTeamBScore(hole);
+
+		if (!scoreA || !scoreB) return null;
+
+		const numA = Number(scoreA);
+		const numB = Number(scoreB);
+
+		if (isNaN(numA) || isNaN(numB)) return null;
+		if (numA < numB) return 'A';
+		if (numB < numA) return 'B';
+		return 'tie';
 	}
 
 	// Handle score change
@@ -89,138 +90,155 @@
 		const value = (e.target as HTMLInputElement).value;
 		// Allow empty string or a number between 1-12
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
-			const playerToUpdate = team === 'A' ? teamAPlayer1 : teamBPlayer1;
-			if (!playerToUpdate) return;
-
-			// Update the player's score
-			if (playerToUpdate.scores) {
-				playerToUpdate.scores[hole] = value;
-			}
-
-			// Save to the backend/store
-			if (value === '') {
-				saveScore(playerToUpdate.player_id, hole, null);
-			} else {
-				saveScore(playerToUpdate.player_id, hole, parseInt(value));
+			if (team === 'A') {
+				// Create a new array with the updated player
+				teamAPlayers = teamAPlayers.map(player => {
+					if (player === teamAPlayers[0]) {
+						// Create new scores object if it doesn't exist
+						const updatedScores = { ...(player.scores || {}) };
+						updatedScores[hole] = value;
+						
+						// Return updated player with new scores
+						return {
+							...player,
+							scores: updatedScores
+						};
+					}
+					return player;
+				});
+				
+				// Save it outside of the reactive assignment
+				if (teamAPlayers[0]?.player_id) {
+					saveScore(
+						teamAPlayers[0].player_id, 
+						hole, 
+						value === '' ? null : parseInt(value)
+					);
+				}
+			} else if (team === 'B') {
+				// Create a new array with the updated player
+				teamBPlayers = teamBPlayers.map(player => {
+					if (player === teamBPlayers[0]) {
+						// Create new scores object if it doesn't exist
+						const updatedScores = { ...(player.scores || {}) };
+						updatedScores[hole] = value;
+						
+						// Return updated player with new scores
+						return {
+							...player,
+							scores: updatedScores
+						};
+					}
+					return player;
+				});
+				
+				// Save it outside of the reactive assignment
+				if (teamBPlayers[0]?.player_id) {
+					saveScore(
+						teamBPlayers[0].player_id, 
+						hole, 
+						value === '' ? null : parseInt(value)
+					);
+				}
 			}
 		}
 	}
-
-	function getDots(player: Player['player'], hole: number): string {
-		return calculateHandicapDots(player, hole, course);
-	}
 </script>
 
-<div class="mb-4">
-	<h2 class="text-lg font-bold">4v4 Team Scramble Scorecard</h2>
-	<p class="text-sm text-gray-600">
-		Each team has four players who select the best shot on each stroke, then all players play from
-		that position.
-	</p>
-	<table class="min-w-full border-collapse text-sm">
+<div class="scoreboard overflow-x-auto">
+	<div class="mb-4">
+		<h2 class="text-lg font-bold">4v4 Team Scramble Scorecard</h2>
+		<p class="text-sm text-gray-500">
+			Each team has four players who select the best shot on each stroke, then all players play from that position.
+			This format is worth 2 points for a win, 1 point for a tie.
+		</p>
+	</div>
+	
+	<table class="min-w-full border-collapse">
 		<thead>
 			<tr>
-				<th class="sticky left-0 border bg-white px-2 py-1">Hole</th>
-				<th class="border bg-blue-50 px-2 py-1">
-					Team A
-					<div class="text-xs text-gray-500">
-						{safeTeamAPlayers.map((p) => p.player?.username || 'Player').join(', ')}
-					</div>
-				</th>
-				<th class="border bg-red-50 px-2 py-1">
-					Team B
-					<div class="text-xs text-gray-500">
-						{safeTeamBPlayers.map((p) => p.player?.username || 'Player').join(', ')}
-					</div>
-				</th>
+				<th class="sticky left-0 border bg-white px-2 py-1">Team</th>
+				{#each safeHoles as hole (hole)}
+					<th class="w-12 border px-2 py-1">{hole}</th>
+				{/each}
 			</tr>
 		</thead>
 		<tbody>
-			{#each safeHoles as hole (hole)}
-				<tr class={getWinningTeam(
-					calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole),
-					calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)
-				) === 'A' ? 'bg-blue-50' : getWinningTeam(
-					calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole),
-					calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)
-				) === 'B' ? 'bg-red-50' : ''}>
-					<td class="border px-2 py-1 font-bold">{hole}</td>
-
-					<!-- Team A Score Cell -->
-					<td class="border px-2 py-1 text-center" class:bg-blue-100={getWinningTeam(calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole), calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)) === 'A'}>
-						{#if !isLocked && teamALeader}
-							<input
-								type="number"
-								min="1"
-								max="20"
-								class="w-12 rounded border p-1 text-center"
-								value={getTeamScore(teamAPlayers, hole) || ''}
-								on:change={(e) => {
-									const target = e.target as HTMLInputElement | null;
-									const val = target ? parseInt(target.value, 10) : NaN;
-									if (!isNaN(val) && teamALeader?.id) {
-										saveScore(teamALeader.id, hole, val);
-									} else if (teamALeader?.id) {
-										saveScore(teamALeader.id, hole, null);
-									}
-								}}
-							/>
-							<!-- Sync status indicator -->
-							{#if teamALeader?.id && typeof getSyncStatus === 'function'}
-								{#if getSyncStatus(teamALeader.id, hole) === 'pending'}
-									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-								{:else if getSyncStatus(teamALeader.id, hole) === 'synced'}
-									<span title="Synced" class="ml-1 text-green-600">✔️</span>
-								{:else if getSyncStatus(teamALeader.id, hole) === 'failed'}
-									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
-								{/if}
+			<!-- Team A Row -->
+			<tr class="bg-blue-50">
+				<td class="sticky left-0 border bg-blue-50 px-2 py-1 font-semibold">
+					Team A
+					<div class="text-xs">
+						{#each safeTeamAPlayers.slice(0, 4) as player, i (player.player_id)}
+							{#if i > 0}, {/if}
+							{player.username || `Player ${i+1}`}
+						{/each}
+					</div>
+				</td>
+				{#each safeHoles as hole (hole)}
+					<td
+						class="border px-1 py-1 text-center"
+						class:bg-green-100={getWinningTeam(hole) === 'A'}
+						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
+					>
+						<input
+							type="text"
+							class="w-full bg-transparent text-center"
+							value={getTeamAScore(hole)}
+							disabled={isLocked}
+							on:input={(e) => handleScoreChange('A', hole, e)}
+						/>
+						<!-- Sync status indicator -->
+						{#if typeof getSyncStatus === 'function'}
+							{#if getSyncStatus(teamAPlayer1?.player_id, hole) === 'pending'}
+								<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+							{:else if getSyncStatus(teamAPlayer1?.player_id, hole) === 'synced'}
+								<span title="Synced" class="ml-1 text-green-600">✔️</span>
+							{:else if getSyncStatus(teamAPlayer1?.player_id, hole) === 'failed'}
+								<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
 							{/if}
-						{:else}
-							<div>
-								<span class="font-bold">Gross:</span> {getTeamScore(teamAPlayers, hole)}
-								<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, teamAPlayers[0]?.player?.id, hole)}
-							</div>
 						{/if}
 					</td>
+				{/each}
+			</tr>
 
-					<!-- Team B Score Cell -->
-					<td class="border px-2 py-1 text-center" class:bg-red-100={getWinningTeam(calculateGrossScore(scores, teamAPlayers[0]?.player?.id, hole), calculateGrossScore(scores, teamBPlayers[0]?.player?.id, hole)) === 'B'}>
-						{#if !isLocked && teamBLeader}
-							<input
-								type="number"
-								min="1"
-								max="20"
-								class="w-12 rounded border p-1 text-center"
-								value={getTeamScore(teamBPlayers, hole) || ''}
-								on:change={(e) => {
-									const target = e.target as HTMLInputElement | null;
-									const val = target ? parseInt(target.value, 10) : NaN;
-									if (!isNaN(val) && teamBLeader?.id) {
-										saveScore(teamBLeader.id, hole, val);
-									} else if (teamBLeader?.id) {
-										saveScore(teamBLeader.id, hole, null);
-									}
-								}}
-							/>
-							<!-- Sync status indicator -->
-							{#if teamBLeader?.id && typeof getSyncStatus === 'function'}
-								{#if getSyncStatus(teamBLeader.id, hole) === 'pending'}
-									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-								{:else if getSyncStatus(teamBLeader.id, hole) === 'synced'}
-									<span title="Synced" class="ml-1 text-green-600">✔️</span>
-								{:else if getSyncStatus(teamBLeader.id, hole) === 'failed'}
-									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
-								{/if}
+			<!-- Team B Row -->
+			<tr class="bg-green-50">
+				<td class="sticky left-0 border bg-green-50 px-2 py-1 font-semibold">
+					Team B
+					<div class="text-xs">
+						{#each safeTeamBPlayers.slice(0, 4) as player, i (player.player_id)}
+							{#if i > 0}, {/if}
+							{player.username || `Player ${i+1}`}
+						{/each}
+					</div>
+				</td>
+				{#each safeHoles as hole (hole)}
+					<td
+						class="border px-1 py-1 text-center"
+						class:bg-green-100={getWinningTeam(hole) === 'B'}
+						class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
+					>
+						<input
+							type="text"
+							class="w-full bg-transparent text-center"
+							value={getTeamBScore(hole)}
+							disabled={isLocked}
+							on:input={(e) => handleScoreChange('B', hole, e)}
+						/>
+						<!-- Sync status indicator -->
+						{#if typeof getSyncStatus === 'function'}
+							{#if getSyncStatus(teamBPlayer1?.player_id, hole) === 'pending'}
+								<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+							{:else if getSyncStatus(teamBPlayer1?.player_id, hole) === 'synced'}
+								<span title="Synced" class="ml-1 text-green-600">✔️</span>
+							{:else if getSyncStatus(teamBPlayer1?.player_id, hole) === 'failed'}
+								<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
 							{/if}
-						{:else}
-							<div>
-								<span class="font-bold">Gross:</span> {getTeamScore(teamBPlayers, hole)}
-								<span class="ml-2 font-bold">Net:</span> {calculateNetScore(scores, teamBPlayers[0]?.player?.id, hole)}
-							</div>
 						{/if}
 					</td>
-				</tr>
-			{/each}
+				{/each}
+			</tr>
 		</tbody>
 	</table>
 </div>

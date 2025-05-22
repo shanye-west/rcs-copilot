@@ -5,14 +5,8 @@
 	import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
 	import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
 	import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
-	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
-	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
-	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 	import { get } from 'svelte/store';
 	import { offlineStore } from '$lib/stores/offline-store';
-	import { createScoreSaver, createSyncStatusChecker } from '$lib/utils/offline-integration';
-	import type { Score } from '$lib/utils/scoring';
-	import type { Course } from '$lib/utils/scoring';
 
 	interface User {
 		id: string;
@@ -70,9 +64,6 @@
 	// Helper to check if match is locked
 	const isLocked = match?.is_locked;
 
-	let saveError: string | null = null;
-	let isLoading = true;
-
 	// Initialize local score state for each player
 	onMount(() => {
 		for (const p of matchPlayers) {
@@ -81,51 +72,64 @@
 				p.scores[hole] = getScore(p.player_id, hole);
 			}
 		}
-		isLoading = false;
 	});
 
-	// Create helpers for offline integration
-	const matchId = match?.id || '';
-	const saveScoreHandler = createScoreSaver(matchId);
-	const getSyncStatusHandler = (playerId: string | undefined, hole: number) => {
-	  if (!playerId) return undefined;
-	  return createSyncStatusChecker(matchId)(playerId, hole);
-	};
+	// Helper to get sync status for a score
+	function getSyncStatus(playerId: string, hole: number): 'pending' | 'synced' | 'failed' | null {
+		const state = get(offlineStore);
+		const matchId = match?.id;
+		if (!matchId) return null;
+		const score = state.scores.find(
+			(s) => s.player_id === playerId && s.hole_number === hole && s.match_id === matchId
+		);
+		if (!score) return null;
+		if (score.synced) return 'synced';
+		if (score.retry_count > 3) return 'failed';
+		return 'pending';
+	}
 
 	// Save score to Supabase with offline support
 	async function saveScore(playerId: string, hole: number, value: number | null) {
 		if (!authState?.user) return;
 
-		// Just use our offline integration utility
-		if (value !== null) {
-			saveScoreHandler(playerId, hole, value);
-		}
+		// Determine team ID from player's team_id
+		const playerEntry = matchPlayers.find((p) => p.player_id === playerId);
+		if (!playerEntry) return;
 
-		saveError = null;
-		// If we're online, also try to save directly to Supabase
-		// (the offline store will handle syncing, but this gives immediate feedback)
-		if (navigator.onLine) {
+		// Add to offline store first (this ensures data is saved even if offline)
+		offlineStore.addScore({
+			player_id: playerId,
+			hole_number: hole,
+			score: value,
+			match_id: match.id
+		});
+
+		// If we're online, try to save to Supabase directly
+		if ($offlineStore.isOnline) {
 			try {
-				const upsertPayload = {
-					match_id: matchId,
-					player_id: playerId,
-					hole_number: hole,
-					gross_score: value,
-					updated_by: authState.user?.id ?? '',
-					updated_at: new Date().toISOString()
-				};
-				const { error } = await supabase.from('match_scores').upsert(upsertPayload);
+				// Upsert score for this player/hole/match
+				const { error } = await supabase.from('scores').upsert(
+					[
+						{
+							match_id: match.id,
+							player_id: playerId,
+							team: playerEntry.team_id, // Use player's team_id directly
+							hole_number: hole,
+							gross_score: value !== null ? Number(value) : null
+						}
+					],
+					{ onConflict: 'match_id,player_id,hole_number' }
+				);
+				
 				if (error) {
-					console.error('Supabase upsert error:', error, upsertPayload);
-					saveError = 'Error saving score. Please try again.';
+					console.error('Error saving score:', error.message);
 				} else {
-					// Mark as synced in offline store
-					offlineStore.markSynced(playerId, hole, matchId);
+					// Mark as synced in the offline store
+					offlineStore.markSynced(playerId, hole, match.id);
 				}
-			} catch (err) {
-				console.error('Error saving score:', err);
-				saveError = 'Error saving score. Please try again.';
-				// offline store will retry later
+			} catch (error) {
+				console.error('Failed to save score:', error);
+				// Score remains in offline store for later sync
 			}
 		}
 	}
@@ -136,17 +140,16 @@
 	const is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
 	const is2v2Shamble = matchType?.name === '2v2 Team Shamble';
 	const is4v4TeamScramble = matchType?.name === '4v4 Team Scramble';
+	
+	// Import new scorecard components
+	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
+	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
+	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 </script>
 
 <OfflineIndicator />
 
-{#if isLoading}
-	<div class="p-8 text-center text-gray-500">Loading match data...</div>
-{:else}
 <section class="mx-auto max-w-3xl p-4">
-	{#if saveError}
-		<div class="mb-4 rounded border border-red-200 bg-red-50 p-2 text-red-700">{saveError}</div>
-	{/if}
 	<h1 class="mb-2 text-2xl font-bold">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
 	<div class="mb-2 text-gray-600">Match Type: {matchType?.name || 'Unknown'}</div>
 	<div class="mb-6 text-gray-500">Status: {match.status || 'Unknown'}</div>
@@ -158,58 +161,20 @@
 			{holes}
 			{isLocked}
 			{saveScore}
-			getSyncStatus={getSyncStatusHandler}
-			course={data.course}
+			getSyncStatus={getSyncStatus}
 		/>
 	{:else if is2v2Scramble}
-		<Scorecard2v2Scramble
-			{teamAPlayers}
-			{teamBPlayers}
-			{scores}
-			{holes}
-			{isLocked}
-			{saveScore}
-			getSyncStatus={getSyncStatusHandler}
-			course={data.course}
-		/>
+		<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else if is2v2BestBall}
-		<Scorecard2v2BestBall
-			{teamAPlayers}
-			{teamBPlayers}
-			{scores}
-			{holes}
-			{isLocked}
-			{saveScore}
-			getSyncStatus={getSyncStatusHandler}
-			course={data.course}
-		/>
+		<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else if is2v2Shamble}
-		<Scorecard2v2Shamble
-			{teamAPlayers}
-			{teamBPlayers}
-			{scores}
-			{holes}
-			{isLocked}
-			{saveScore}
-			getSyncStatus={getSyncStatusHandler}
-			course={data.course}
-		/>
+		<Scorecard2v2Shamble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else if is4v4TeamScramble}
-		<Scorecard4v4TeamScramble
-			{teamAPlayers}
-			{teamBPlayers}
-			{scores}
-			{holes}
-			{isLocked}
-			{saveScore}
-			getSyncStatus={getSyncStatusHandler}
-			course={data.course}
-		/>
+		<Scorecard4v4TeamScramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
 	{:else}
-		<div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
+		<div class="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
 			<h3 class="font-bold">Match Type Not Implemented</h3>
 			<p>This match type ({matchType?.name || 'Unknown'}) is not yet fully implemented.</p>
 		</div>
 	{/if}
 </section>
-{/if}
