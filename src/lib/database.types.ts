@@ -247,5 +247,26 @@ export interface Database {
 				};
 			};
 		};
+		Views: {
+			/**
+			 * match_scores: Aggregates scores per match/player/hole, joining with match and player info.
+			 * This is a view, not a table. See match_scores_view.sql for definition.
+			 */
+			match_scores: {
+				Row: {
+					score_id: string;
+					match_id: string;
+					player_id: string;
+					team: string;
+					hole_number: number;
+					gross_score?: number;
+					net_score?: number;
+					score_created_at?: string;
+					round_id: string;
+					tournament_id: string;
+					player_name: string;
+				};
+			};
+		};
 	};
 }
