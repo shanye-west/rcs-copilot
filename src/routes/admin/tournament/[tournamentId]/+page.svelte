@@ -10,6 +10,9 @@ let isLoading = true;
 let error: string | null = null;
 let newRoundName = '';
 let addError: string | null = null;
+let editingRoundId: string | null = null;
+let editRoundName = '';
+let editError: string | null = null;
 
 onMount(async () => {
   isLoading = true;
@@ -53,6 +56,37 @@ async function deleteRound(roundId: string) {
   await supabase.from('rounds').delete().eq('id', roundId);
   rounds = rounds.filter(r => r.id !== roundId);
 }
+
+async function startEditRound(round) {
+  editingRoundId = round.id;
+  editRoundName = round.name;
+  editError = null;
+}
+
+async function cancelEditRound() {
+  editingRoundId = null;
+  editRoundName = '';
+  editError = null;
+}
+
+async function saveEditRound() {
+  if (!editRoundName.trim()) {
+    editError = 'Round name required.';
+    return;
+  }
+  if (!tournament || !editingRoundId) return;
+  const { error: err } = await supabase.from('rounds').update({ name: editRoundName.trim() }).eq('id', editingRoundId);
+  if (err) {
+    editError = err.message;
+  } else {
+    // Reload rounds
+    const { data: r, error: err2 } = await supabase.from('rounds').select('*').eq('tournament_id', tournament.id);
+    if (!err2) rounds = r || [];
+    editingRoundId = null;
+    editRoundName = '';
+    editError = null;
+  }
+}
 </script>
 
 <section class="mx-auto max-w-3xl p-4">
@@ -72,8 +106,18 @@ async function deleteRound(roundId: string) {
     <ul>
       {#each rounds as round}
         <li class="mb-2 flex items-center gap-2">
-          <a class="text-blue-700 underline" href={`/admin/round/${round.id}`}>{round.name || `Round ${round.id}`}</a>
-          <button class="text-xs text-red-600" on:click={() => deleteRound(round.id)}>Delete</button>
+          {#if editingRoundId === round.id}
+            <input class="border rounded px-2 py-1" bind:value={editRoundName} />
+            <button class="bg-blue-600 text-white px-2 py-1 rounded text-xs" on:click={saveEditRound}>Save</button>
+            <button class="text-xs text-gray-600" on:click={cancelEditRound}>Cancel</button>
+            {#if editError}
+              <span class="text-red-600 text-xs">{editError}</span>
+            {/if}
+          {:else}
+            <a class="text-blue-700 underline" href={`/admin/round/${round.id}`}>{round.name || `Round ${round.id}`}</a>
+            <button class="text-xs text-blue-600" on:click={() => startEditRound(round)}>Edit</button>
+            <button class="text-xs text-red-600" on:click={() => deleteRound(round.id)}>Delete</button>
+          {/if}
         </li>
       {/each}
     </ul>
