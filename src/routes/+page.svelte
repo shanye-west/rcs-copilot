@@ -26,98 +26,70 @@
 	let showAddRound = false;
 </script>
 
-<section class="mx-auto max-w-3xl p-4">
-	<nav class="mb-4 text-sm text-gray-500" aria-label="Breadcrumb">
-		<a href="/" class="text-blue-600 hover:underline">Home</a>
+<section class="container mx-auto px-4 py-6">
+	<nav class="mb-4 text-sm text-gray-500 flex items-center justify-between" aria-label="Breadcrumb">
+		<a href="/" class="text-blue-600 hover:underline font-semibold flex items-center gap-1">
+			<img src="/rowdy-cup-logo.svg" alt="Rowdy Cup Logo" class="h-6 w-6 inline-block mr-1" />
+			Home
+		</a>
 		<span class="mx-1">/</span>
 		<span class="font-semibold text-gray-700">Tournament</span>
 	</nav>
 	{#if tournament}
-		<h1 class="mb-2 text-3xl font-bold">{tournament.name}</h1>
-		<div class="mb-6 text-gray-600">
-			<span>Dates: {tournament.start_date} - {tournament.end_date}</span>
-		</div>
-		{#each rounds as round (round.id)}
-			<div class="mb-6 rounded-lg border bg-white p-4 shadow">
-				<div class="mb-2 flex items-center">
-					<h2 class="flex-1 text-xl font-semibold">{round.name}</h2>
-					<a
-						href={`/rounds/${round.id}`}
-						class="ml-2 flex items-center text-blue-600 hover:text-blue-800"
-						title="View Round"
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							class="mr-1 h-5 w-5"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-							><path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M9 5l7 7-7 7"
-							/></svg
-						>
-						<span class="hidden sm:inline">Go to Round</span>
-					</a>
-				</div>
-				<ul>
-					{#each getMatchesForRound(round.id) as match (match.id)}
-						<li
-							class="mb-2 flex flex-col border-b p-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-						>
-							<div>
-								<span class="font-semibold">{match.team_a_name}</span>
-								<span class="mx-2 text-gray-400">vs</span>
-								<span class="font-semibold">{match.team_b_name}</span>
-								<span class="ml-4 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600"
-									>{match.status}</span
-								>
-							</div>
-							<div class="mt-2 flex items-center gap-2 sm:mt-0">
-								<span class="text-sm text-gray-500"
-									>Match Type: {getMatchTypeName(match.match_type_id)}</span
-								>
-								<a
-									href={`/matches/${match.id}`}
-									class="ml-2 flex items-center text-green-600 hover:text-green-800"
-									title="View Match"
-								>
-									<svg
-										xmlns="http://www.w3.org/2000/svg"
-										class="h-5 w-5"
-										fill="none"
-										viewBox="0 0 24 24"
-										stroke="currentColor"
-										><path
-											stroke-linecap="round"
-											stroke-linejoin="round"
-											stroke-width="2"
-											d="M15 19l7-7-7-7"
-										/></svg
-									>
-								</a>
-							</div>
-						</li>
-					{/each}
-				</ul>
+		<div class="mb-6 flex flex-col items-center justify-center">
+			<h1 class="mb-2 text-3xl font-extrabold tracking-tight text-center">{tournament.name}</h1>
+			<div class="mb-2 text-gray-600 text-center">
+				<span>Dates: {tournament.start_date} - {tournament.end_date}</span>
 			</div>
-		{/each}
+		</div>
+		{#if isAdmin}
+			<div class="mb-5 flex justify-between items-center gap-4">
+				<button class="px-4 py-2 rounded border flex items-center gap-2 bg-white hover:bg-gray-50 shadow" on:click={() => showEditTournament = true}>
+					<span>Edit Tournament</span>
+				</button>
+				<button class="px-4 py-2 rounded border flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700 shadow" on:click={() => showAddRound = true}>
+					<span>Add New Round</span>
+				</button>
+			</div>
+		{/if}
+		<div class="mt-6">
+			{#each rounds as round (round.id)}
+				<div class="mb-6 rounded-lg border bg-white p-4 shadow">
+					<div class="mb-2 flex items-center">
+						<h2 class="flex-1 text-xl font-semibold">{round.name}</h2>
+						<a
+							href={`/rounds/${round.id}`}
+							class="ml-2 flex items-center text-blue-600 hover:text-blue-800"
+							title="View Round"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" class="mr-1 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+							<span class="hidden sm:inline">Go to Round</span>
+						</a>
+					</div>
+					<ul>
+						{#each getMatchesForRound(round.id) as match (match.id)}
+							<li class="mb-2 flex flex-col border-b p-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between">
+								<div>
+									<span class="font-semibold text-blue-700">{match.team_a_name}</span>
+									<span class="mx-2 text-gray-400">vs</span>
+									<span class="font-semibold text-green-700">{match.team_b_name}</span>
+									<span class="ml-4 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600">{match.status}</span>
+								</div>
+								<div class="mt-2 flex items-center gap-2 sm:mt-0">
+									<span class="text-sm text-gray-500">Match Type: {getMatchTypeName(match.match_type_id)}</span>
+									<a href={`/matches/${match.id}`} class="ml-2 flex items-center text-green-600 hover:text-green-800" title="View Match">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l7-7-7-7"/></svg>
+									</a>
+								</div>
+							</li>
+					{/each}
+					</ul>
+				</div>
+			{/each}
+		</div>
 	{:else}
 		<div class="py-12 text-center text-gray-500">
 			<p>No active tournament found.</p>
-		</div>
-	{/if}
-
-	{#if isAdmin}
-		<div class="mb-5 flex justify-between items-center">
-			<button class="px-4 py-2 rounded border flex items-center gap-2 bg-white hover:bg-gray-50" on:click={() => showEditTournament = true}>
-				<span>Edit Tournament</span>
-			</button>
-			<button class="px-4 py-2 rounded border flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700" on:click={() => showAddRound = true}>
-				<span>Add New Round</span>
-			</button>
 		</div>
 	{/if}
 	{#if showEditTournament}

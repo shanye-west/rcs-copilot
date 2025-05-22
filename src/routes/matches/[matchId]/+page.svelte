@@ -1,12 +1,17 @@
 <script lang="ts">
 	import { supabase } from '$lib/supabase';
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { auth } from '$lib/stores/auth';
 	import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
 	import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
 	import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
 	import { get } from 'svelte/store';
 	import { offlineStore } from '$lib/stores/offline-store';
+	import MatchHeader from '$lib/components/MatchHeader.svelte';
+	import EnhancedMatchScorecard from '$lib/components/EnhancedMatchScorecard.svelte'; 
+	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
+	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
+	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
 
 	interface User {
 		id: string;
@@ -17,9 +22,12 @@
 
 	// Subscribe to auth store
 	let authState: { user: User | null; loading: boolean; error: string | null };
-	auth.subscribe((state) => {
+	const unsubscribe = auth.subscribe((state) => {
 		authState = state;
 	});
+
+	// Clean up subscription
+	onDestroy(unsubscribe);
 
 	export let data;
 
@@ -63,6 +71,22 @@
 
 	// Helper to check if match is locked
 	const isLocked = match?.is_locked;
+	
+	// Match completion state
+	let showCompletionDialog = false;
+	let showEditDialog = false;
+	let matchSummary = {
+		teamATotal: 0,
+		teamBTotal: 0,
+		result: '',
+		leadingTeam: '',
+		matchPlayResult: ''
+	};
+
+	// Calculate current leading team and amount
+	let currentLeadingTeam = null;
+	let currentLeadAmount = 0;
+	let currentHole = 1;
 
 	// Initialize local score state for each player
 	onMount(() => {
@@ -72,7 +96,72 @@
 				p.scores[hole] = getScore(p.player_id, hole);
 			}
 		}
+		
+		// Calculate current hole and leading team/amount
+		updateMatchStatus();
 	});
+	
+	// Function to update match status
+	function updateMatchStatus() {
+		// Find the highest hole with any score
+		const completedScores = scores.filter(
+			(score) => score.gross_score !== null
+		);
+		
+		if (completedScores.length > 0) {
+			currentHole = Math.max(...completedScores.map((s) => s.hole_number));
+		} else {
+			currentHole = 1;
+		}
+		
+		// Calculate leading team and amount
+		// This is a simplified version - would need to be expanded based on match type
+		if (completedScores.length > 0) {
+			let teamAPoints = 0;
+			let teamBPoints = 0;
+			
+			// Group scores by hole
+			const holeScores = {};
+			for (const score of completedScores) {
+				const hole = score.hole_number;
+				if (!holeScores[hole]) {
+					holeScores[hole] = [];
+				}
+				holeScores[hole].push(score);
+			}
+			
+			// For each hole with complete scores, determine winner
+			for (const [hole, scores] of Object.entries(holeScores)) {
+				const teamAScore = scores.find(s => 
+					matchPlayers.find(mp => mp.player_id === s.player_id && mp.team_id === teamA?.id)
+				);
+				const teamBScore = scores.find(s => 
+					matchPlayers.find(mp => mp.player_id === s.player_id && mp.team_id === teamB?.id)
+				);
+				
+				if (teamAScore && teamBScore) {
+					if (teamAScore.gross_score < teamBScore.gross_score) {
+						teamAPoints++;
+					} else if (teamBScore.gross_score < teamAScore.gross_score) {
+						teamBPoints++;
+					}
+					// Tied scores don't add points
+				}
+			}
+			
+			// Determine leading team
+			if (teamAPoints > teamBPoints) {
+				currentLeadingTeam = teamA?.id;
+				currentLeadAmount = teamAPoints - teamBPoints;
+			} else if (teamBPoints > teamAPoints) {
+				currentLeadingTeam = teamB?.id;
+				currentLeadAmount = teamBPoints - teamAPoints;
+			} else {
+				currentLeadingTeam = null;
+				currentLeadAmount = 0;
+			}
+		}
+	}
 
 	// Helper to get sync status for a score
 	function getSyncStatus(playerId: string, hole: number): 'pending' | 'synced' | 'failed' | null {
@@ -126,11 +215,106 @@
 				} else {
 					// Mark as synced in the offline store
 					offlineStore.markSynced(playerId, hole, match.id);
+					
+					// Update match status
+					updateMatchStatus();
+					
+					// Check if match should be completed
+					checkMatchCompletion();
 				}
 			} catch (error) {
 				console.error('Failed to save score:', error);
 				// Score remains in offline store for later sync
 			}
+		}
+	}
+	
+	// Check if match should be completed
+	function checkMatchCompletion() {
+		// Calculate completed holes
+		const completedScores = scores.filter(
+			(score) => score.gross_score !== null
+		);
+		
+		// If all 18 holes are filled or match is clinched
+		if (completedScores.length === 18 * matchPlayers.length || 
+			(currentLeadAmount > 0 && currentLeadAmount > 18 - currentHole)) {
+			
+			// Calculate totals for the summary
+			let teamATotal = 0;
+			let teamBTotal = 0;
+			
+			for (const score of completedScores) {
+				const player = matchPlayers.find(p => p.player_id === score.player_id);
+				if (player) {
+					if (player.team_id === teamA?.id) {
+						teamATotal += score.gross_score;
+					} else if (player.team_id === teamB?.id) {
+						teamBTotal += score.gross_score;
+					}
+				}
+			}
+			
+			// Calculate the match play result
+			const matchPlayResult = currentLeadAmount > 0 
+				? `${currentLeadAmount} UP` 
+				: 'AS';
+			
+			// Set match summary data
+			matchSummary = {
+				teamATotal,
+				teamBTotal,
+				result: matchPlayResult,
+				leadingTeam: currentLeadingTeam || 'tied',
+				matchPlayResult
+			};
+			
+			// Mark match as completed in Supabase
+			async function completeMatch() {
+				try {
+					const { error } = await supabase
+						.from('matches')
+						.update({
+							status: 'completed',
+							result: matchPlayResult,
+							leading_team: currentLeadingTeam,
+							lead_amount: currentLeadAmount
+						})
+						.eq('id', match.id);
+						
+					if (error) {
+						console.error('Error completing match:', error.message);
+					} else {
+						// Show completion dialog
+						showCompletionDialog = true;
+					}
+				} catch (error) {
+					console.error('Failed to complete match:', error);
+				}
+			}
+			
+			completeMatch();
+		}
+	}
+
+	// Toggle lock functionality
+	async function toggleLock() {
+		if (!authState?.user?.isAdmin) return;
+		
+		try {
+			const { error } = await supabase
+				.from('matches')
+				.update({ is_locked: !isLocked })
+				.eq('id', match.id);
+				
+			if (error) {
+				console.error('Error toggling match lock:', error.message);
+			} else {
+				// Redirect to reload data
+				window.location.reload();
+			}
+		} catch (error) {
+			console.error('Failed to toggle match lock:', error);
 		}
 	}
 
@@ -140,11 +324,6 @@
 	const is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
 	const is2v2Shamble = matchType?.name === '2v2 Team Shamble';
 	const is4v4TeamScramble = matchType?.name === '4v4 Team Scramble';
-	
-	// Import new scorecard components
-	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
-	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
-	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 </script>
 
 <OfflineIndicator />
