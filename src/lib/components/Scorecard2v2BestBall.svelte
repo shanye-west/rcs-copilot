@@ -3,9 +3,9 @@
 	import {
 		calculateNetScore,
 		calculateHandicapDots,
-		calculateBestNetScore,
-		getWinningTeam
+		calculateBestNetScore
 	} from '$lib/utils/scoring';
+	import type { Player, Score } from '$lib/utils/scoring';
 
 	export let teamAPlayers: Player[];
 	export let teamBPlayers: Player[];
@@ -62,10 +62,14 @@
 	}
 
 	// Determine which team is winning on a hole
-	function getWinningTeam(hole: number): 'A' | 'B' | 'tie' | null {
+	function getWinningTeamForHole(hole: number): 'A' | 'B' | 'tie' | null {
 		const teamAScore = calculateBestNetScore(teamAPlayers, scores, hole);
 		const teamBScore = calculateBestNetScore(teamBPlayers, scores, hole);
-		return determineWinningTeam(teamAScore, teamBScore);
+		return teamAScore === teamBScore
+			? 'tie'
+			: teamAScore !== undefined && (teamBScore === undefined || teamAScore < teamBScore)
+			? 'A'
+			: 'B';
 	}
 </script>
 
@@ -98,13 +102,7 @@
 		</thead>
 		<tbody>
 			{#each holes as hole (hole)}
-				<tr class={getWinningTeam(
-					calculateBestNetScore(teamAPlayers, scores, hole),
-					calculateBestNetScore(teamBPlayers, scores, hole)
-				) === 'A' ? 'bg-green-50' : getWinningTeam(
-					calculateBestNetScore(teamAPlayers, scores, hole),
-					calculateBestNetScore(teamBPlayers, scores, hole)
-				) === 'B' ? 'bg-red-50' : ''}>
+				<tr class={getWinningTeamForHole(hole) === 'A' ? 'bg-green-50' : getWinningTeamForHole(hole) === 'B' ? 'bg-red-50' : ''}>
 					<td class="border px-2 py-1 font-bold">{hole}</td>
 					{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
 						<td class="border px-2 py-1">
@@ -116,7 +114,8 @@
 									class="w-12 rounded border p-1 text-center"
 									value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
 									on:input={(e) => {
-										if (p.scores) p.scores[hole] = e.target.value;
+										const target = e.target as HTMLInputElement;
+										if (p.scores && target) p.scores[hole] = target.value;
 									}}
 									on:change={() => saveScore(p.player_id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
 								/>
@@ -150,7 +149,8 @@
 									class="w-12 rounded border p-1 text-center"
 									value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
 									on:input={(e) => {
-										if (p.scores) p.scores[hole] = e.target.value;
+										const target = e.target as HTMLInputElement;
+										if (p.scores && target) p.scores[hole] = target.value;
 									}}
 									on:change={() => saveScore(p.player_id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
 								/>
