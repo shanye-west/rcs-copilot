@@ -19,6 +19,10 @@
 	onMount(() => {
 		auth.checkSession();
 	});
+
+	// DEBUG: Log auth state changes
+	$:
+		console.log('LAYOUT: $auth.user =', $auth.user);
 </script>
 
 <div class="min-h-screen bg-gray-50">

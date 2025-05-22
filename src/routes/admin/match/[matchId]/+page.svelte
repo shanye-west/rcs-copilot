@@ -99,54 +99,54 @@
         players={[teamAPlayers[0], teamBPlayers[0]]}
         {scores}
         {holes}
-        isLocked={false} <!-- Admin view is never locked -->
+        isLocked={false}
         {saveScore}
         {getSyncStatus}
         {course}
       />
     {:else if is2v2Scramble}
       <Scorecard2v2Scramble
-        {teamAPlayers}
-        {teamBPlayers}
-        {scores}
-        {holes}
+        teamAPlayers={teamAPlayers}
+        teamBPlayers={teamBPlayers}
+        scores={scores}
+        holes={holes}
         isLocked={false}
-        {saveScore}
-        {getSyncStatus}
-        {course}
+        saveScore={saveScore}
+        getSyncStatus={getSyncStatus}
+        course={course}
       />
     {:else if is2v2BestBall}
       <Scorecard2v2BestBall
-        {teamAPlayers}
-        {teamBPlayers}
-        {scores}
-        {holes}
+        teamAPlayers={teamAPlayers}
+        teamBPlayers={teamBPlayers}
+        scores={scores}
+        holes={holes}
         isLocked={false}
-        {saveScore}
-        {getSyncStatus}
-        {course}
+        saveScore={saveScore}
+        getSyncStatus={getSyncStatus}
+        course={course}
       />
     {:else if is2v2Shamble}
       <Scorecard2v2Shamble
-        {teamAPlayers}
-        {teamBPlayers}
-        {scores}
-        {holes}
+        teamAPlayers={teamAPlayers}
+        teamBPlayers={teamBPlayers}
+        scores={scores}
+        holes={holes}
         isLocked={false}
-        {saveScore}
-        {getSyncStatus}
-        {course}
+        saveScore={saveScore}
+        getSyncStatus={getSyncStatus}
+        course={course}
       />
     {:else if is4v4TeamScramble}
       <Scorecard4v4TeamScramble
-        {teamAPlayers}
-        {teamBPlayers}
-        {scores}
-        {holes}
+        teamAPlayers={teamAPlayers}
+        teamBPlayers={teamBPlayers}
+        scores={scores}
+        holes={holes}
         isLocked={false}
-        {saveScore}
-        {getSyncStatus}
-        {course}
+        saveScore={saveScore}
+        getSyncStatus={getSyncStatus}
+        course={course}
       />
     {:else}
       <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">

@@ -65,6 +65,7 @@ const createAuthStore = () => {
 					}
 
 					// Set user state
+					console.log('Player profile:', player); // DEBUG: log player object
 					set({
 						user: {
 							id: player.id,
@@ -77,6 +78,7 @@ const createAuthStore = () => {
 					});
 
 					// Redirect based on role
+					console.log('Redirecting, isAdmin:', player.is_admin); // DEBUG
 					if (player.is_admin) {
 						goto('/admin');
 					} else {
@@ -125,6 +127,7 @@ const createAuthStore = () => {
 					}
 
 					if (playerData) {
+						console.log('PlayerData in checkSession:', playerData); // DEBUG
 						set({
 							user: {
 								id: playerData.id,
