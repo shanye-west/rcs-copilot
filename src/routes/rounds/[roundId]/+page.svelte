@@ -1,4 +1,8 @@
 <script lang="ts">
+	import Card from '$lib/components/Card.svelte';
+	import Button from '$lib/components/Button.svelte';
+	import Badge from '$lib/components/Badge.svelte';
+	
 	export let data;
 	const { round, matches, matchTypes, tournament } = data;
 
@@ -6,39 +10,74 @@
 		const type = matchTypes.find((t) => t.id === matchTypeId);
 		return type ? type.name : matchTypeId;
 	}
+	
+	function getStatusVariant(status) {
+		switch (status.toLowerCase()) {
+			case 'completed':
+			case 'complete':
+				return 'success';
+			case 'in_progress':
+				return 'warning';
+			default:
+				return 'secondary';
+		}
+	}
 </script>
 
-<section class="mx-auto max-w-3xl p-4">
-	{#if round && tournament}
-		<div class="mb-2 text-sm text-gray-500">
-			<a href="/" class="text-blue-600 hover:underline">{tournament.name}</a> &rarr; {round.name}
-		</div>
-		<h1 class="mb-2 text-2xl font-bold">{round.name}</h1>
-		<div class="mb-6 text-gray-600">
-			<span>Round Date: {round.date || 'TBD'}</span>
-		</div>
-		<ul>
-			{#each matches as match (match.id)}
-				<li
-					class="mb-2 flex flex-col border-b p-2 last:border-b-0 sm:flex-row sm:items-center sm:justify-between"
-				>
-					<div>
-						<span class="font-semibold">{match.team_a_name}</span>
-						<span class="mx-2 text-gray-400">vs</span>
-						<span class="font-semibold">{match.team_b_name}</span>
-						<span class="ml-4 rounded bg-gray-100 px-2 py-1 text-xs text-gray-600"
-							>{match.status}</span
-						>
+<section class="container mx-auto max-w-3xl px-4 py-6">
+	<Card>
+		{#if round && tournament}
+			<div class="mb-6">
+				<div class="mb-2 text-sm text-blue-600">
+					<a href="/" class="hover:underline">{tournament.name}</a> &rarr; {round.name}
+				</div>
+				<h1 class="heading-lg mb-2">{round.name}</h1>
+				<div class="text-gray-600">
+					<span>Round Date: {round.date || 'TBD'}</span>
+				</div>
+			</div>
+			
+			<div class="space-y-4">
+				{#each matches as match (match.id)}
+					<div class="border border-gray-100 rounded-lg p-4 hover:bg-gray-50 transition-colors duration-200">
+						<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+							<div>
+								<div class="flex items-center mb-2">
+									<span class="font-semibold text-lg">{match.team_a_name}</span>
+									<span class="mx-2 text-gray-400">vs</span>
+									<span class="font-semibold text-lg">{match.team_b_name}</span>
+								</div>
+								<div class="flex flex-wrap gap-2 items-center">
+									<Badge variant={getStatusVariant(match.status)}>
+										{match.status === 'complete' ? 'Completed' : match.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
+									</Badge>
+									<Badge variant="primary">
+										{getMatchTypeName(match.match_type_id)}
+									</Badge>
+								</div>
+							</div>
+							<Button 
+								variant="secondary" 
+								size="sm" 
+								href={`/matches/${match.id}`}
+							>
+								View Match
+							</Button>
+						</div>
 					</div>
-					<div class="mt-2 flex items-center gap-2 sm:mt-0">
-						<span class="text-sm text-gray-500"
-							>Match Type: {getMatchTypeName(match.match_type_id)}</span
-						>
-						<a
-							href={`/matches/${match.id}`}
-							class="ml-2 flex items-center text-green-600 hover:text-green-800"
-							title="View Match"
-						>
+				{:else}
+					<div class="p-4 bg-blue-50 rounded-md text-blue-800">
+						No matches have been scheduled for this round yet.
+					</div>
+				{/each}
+			</div>
+		{:else}
+			<div class="p-4 bg-red-50 rounded-md text-red-800">
+				Round information not found.
+			</div>
+		{/if}
+	</Card>
+</section>
 							<svg
 								xmlns="http://www.w3.org/2000/svg"
 								class="h-5 w-5"

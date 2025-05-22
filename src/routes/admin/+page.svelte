@@ -3,6 +3,10 @@
 	import { supabase } from '$lib/supabase';
 	import { error } from '@sveltejs/kit';
 	import { page } from '$app/stores';
+	import Card from '$lib/components/Card.svelte';
+	import Button from '$lib/components/Button.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import Badge from '$lib/components/Badge.svelte';
 
 	export let data;
 
@@ -25,14 +29,18 @@
 			return;
 		}
 
+		loading = true;
 		const { error: err } = await supabase.from('tournaments').insert({
 			name: newTournamentName.trim()
 		});
+		loading = false;
 
 		if (err) {
 			addError = err.message;
 		} else {
 			newTournamentName = '';
+			success = 'Tournament added successfully!';
+			setTimeout(() => success = '', 3000);
 			// Reload tournaments
 			const { data: t, error: err2 } = await supabase.from('tournaments').select('*');
 			if (!err2) tournaments = t || [];
@@ -54,15 +62,15 @@
 	}
 </script>
 
-<div class="overflow-hidden bg-white shadow sm:rounded-lg">
-	<div class="px-4 py-5 sm:px-6">
-		<h1 class="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-		<p class="mt-1 max-w-2xl text-sm text-gray-500">Manage users and settings</p>
-	</div>
+<div class="container mx-auto px-4 py-8">
+	<Card>
+		<div class="flex items-center justify-between mb-6">
+			<h1 class="heading-lg">Admin Dashboard</h1>
+			<Badge variant="primary">Administrator</Badge>
+		</div>
 
-	<div class="border-t border-gray-200">
-		<div class="px-4 py-5 sm:p-6">
-			<h2 class="text-lg font-medium text-gray-900">Create New User</h2>
+		<div class="mb-8">
+			<h2 class="heading-md mb-4">Create New User</h2>
 
 			{#if error}
 				<div class="mt-4 rounded bg-red-100 p-3 text-red-700">
@@ -79,40 +87,27 @@
 			<form on:submit|preventDefault={createUser} class="mt-5 space-y-4">
 				<div>
 					<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-					<input
-						type="text"
-						id="username"
-						bind:value={username}
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-						placeholder="Enter username"
-					/>
+					<Input id="username" bind:value={username} placeholder="Enter username" />
 				</div>
 
 				<div>
 					<label for="fullName" class="block text-sm font-medium text-gray-700">Full Name</label>
-					<input
-						type="text"
-						id="fullName"
-						bind:value={fullName}
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-						placeholder="Enter full name"
-					/>
+					<Input id="fullName" bind:value={fullName} placeholder="Enter full name" />
 				</div>
 
 				<div>
 					<label for="pin" class="block text-sm font-medium text-gray-700">4-Digit PIN</label>
-					<input
-						type="password"
-						id="pin"
-						inputmode="numeric"
-						bind:value={pin}
-						maxlength="4"
-						class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
-						placeholder="Enter 4-digit PIN"
+					<Input 
+						id="pin" 
+						type="password" 
+						inputmode="numeric" 
+						bind:value={pin} 
+						maxlength="4" 
+						placeholder="Enter 4-digit PIN" 
 					/>
 				</div>
 
-				<div class="flex items-center">
+				<div class="flex items-center mt-4">
 					<input
 						type="checkbox"
 						id="isAdmin"
@@ -122,42 +117,70 @@
 					<label for="isAdmin" class="ml-2 block text-sm text-gray-900"> Is Administrator </label>
 				</div>
 
-				<button
-					type="submit"
-					class="inline-flex items-center rounded-md border border-transparent bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
-					disabled={loading}
-				>
+				<Button type="submit" disabled={loading}>
 					{loading ? 'Creating...' : 'Create User'}
-				</button>
+				</Button>
 			</form>
 		</div>
-	</div>
 
-	<div class="border-t border-gray-200">
-		<div class="px-4 py-5 sm:p-6">
-			<h2 class="text-lg font-medium text-gray-900">Tournament Management</h2>
+		<div class="pt-6 border-t border-gray-200">
+			<h2 class="heading-md mb-4">Tournament Management</h2>
 
-			<form class="mb-4 flex gap-2" on:submit|preventDefault={addTournament}>
-				<input class="border rounded px-2 py-1 flex-grow" placeholder="New tournament name" bind:value={newTournamentName} />
-				<button class="bg-blue-600 text-white px-3 py-1 rounded" type="submit">Add Tournament</button>
-			</form>
+			<div class="mb-6">
+				<form class="flex gap-2" on:submit|preventDefault={addTournament}>
+					<Input 
+						placeholder="New tournament name" 
+						bind:value={newTournamentName} 
+						class="flex-grow" 
+					/>
+					<Button type="submit" disabled={loading}>
+						{loading ? 'Adding...' : 'Add Tournament'}
+					</Button>
+				</form>
 
-			{#if addError}
-				<div class="text-red-600 mb-2">{addError}</div>
-			{/if}
+				{#if addError}
+					<div class="text-red-600 mt-2 text-sm">{addError}</div>
+				{/if}
+				
+				{#if success}
+					<div class="text-green-600 mt-2 text-sm">{success}</div>
+				{/if}
+			</div>
 
 			{#if data.error}
-				<div class="text-red-600">{data.error}</div>
+				<div class="p-4 bg-red-50 rounded-md text-red-600">{data.error}</div>
+			{:else if tournaments.length === 0}
+				<div class="p-4 bg-blue-50 rounded-md text-blue-600">No tournaments found. Create your first tournament above.</div>
 			{:else}
-				<ul>
-					{#each tournaments as t}
-						<li class="mb-2 flex items-center gap-2">
-							<a class="text-blue-700 underline" href={`/admin/tournament/${t.id}`}>{t.name}</a>
-							<button class="text-xs text-red-600" on:click={() => deleteTournament(t.id)}>Delete</button>
-						</li>
-					{/each}
-				</ul>
+				<div class="bg-white shadow overflow-hidden rounded-md">
+					<ul class="divide-y divide-gray-200">
+						{#each tournaments as t}
+							<li class="px-4 py-3 flex items-center justify-between hover:bg-gray-50">
+								<a class="text-blue-800 hover:text-blue-900 font-medium" href={`/admin/tournament/${t.id}`}>
+									{t.name}
+								</a>
+								<div class="flex items-center gap-2">
+									<Button href={`/admin/tournament/${t.id}`} variant="secondary" size="sm">
+										Manage
+									</Button>
+									<Button 
+										variant="danger" 
+										size="sm" 
+										on:click={() => deleteTournament(t.id)}>
+										Delete
+									</Button>
+								</div>
+							</li>
+						{/each}
+					</ul>
+				</div>
 			{/if}
 		</div>
-	</div>
+	</Card>
+</div>
+					{/each}
+				</div>
+			{/if}
+		</div>
+	</Card>
 </div>

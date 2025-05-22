@@ -3,6 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
+	import Button from '$lib/components/Button.svelte';
+	import Input from '$lib/components/Input.svelte';
+	import Card from '$lib/components/Card.svelte';
 
 	let username = '';
 	let pin = '';
@@ -54,50 +57,51 @@
 	}
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-gray-100">
-	<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-md">
-		<h1 class="mb-6 text-center text-2xl font-bold">Rowdy Cup Login</h1>
+<div class="flex min-h-screen items-center justify-center bg-slate-50">
+	<Card class="w-full max-w-md p-8">
+		<div class="text-center mb-8">
+			<h1 class="heading-lg mb-2">Rowdy Cup</h1>
+			<p class="text-blue-600">Tournament Management</p>
+		</div>
 
 		{#if error}
-			<div class="mb-4 rounded bg-red-100 p-3 text-red-700">
+			<div class="mb-6 rounded-md bg-red-50 p-4 text-red-700 border-l-4 border-red-500">
 				{error}
 			</div>
 		{/if}
 
-		<form on:submit|preventDefault={handleLogin} class="space-y-4">
+		<form on:submit|preventDefault={handleLogin} class="space-y-6">
 			<div>
-				<label for="username" class="block text-sm font-medium text-gray-700">Username</label>
-				<input
-					type="text"
+				<label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+				<Input
 					id="username"
 					bind:value={username}
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
 					placeholder="Enter your username"
 					autocomplete="username"
 				/>
 			</div>
 
 			<div>
-				<label for="pin" class="block text-sm font-medium text-gray-700">PIN</label>
-				<input
+				<label for="pin" class="block text-sm font-medium text-gray-700 mb-1">PIN</label>
+				<Input
 					type="password"
 					id="pin"
 					inputmode="numeric"
 					bind:value={pin}
 					maxlength="4"
-					class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2"
 					placeholder="Enter your 4-digit PIN"
 					autocomplete="current-password"
 				/>
 			</div>
 
-			<button
+			<Button
 				type="submit"
-				class="w-full rounded-md border border-transparent bg-blue-600 px-4 py-2 text-white shadow-sm hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none"
+				variant="primary"
+				fullWidth={true}
 				disabled={loading}
 			>
 				{loading ? 'Logging in...' : 'Login'}
-			</button>
+			</Button>
 		</form>
-	</div>
+	</Card>
 </div>

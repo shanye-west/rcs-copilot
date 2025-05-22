@@ -12,6 +12,10 @@
 	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
 	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
+	import Card from '$lib/components/Card.svelte';
+	import Button from '$lib/components/Button.svelte';
+	import Badge from '$lib/components/Badge.svelte';
+	import ScorecardV2 from '$lib/components/ScorecardV2.svelte';
 
 	interface User {
 		id: string;
@@ -328,32 +332,63 @@
 
 <OfflineIndicator />
 
-<section class="mx-auto max-w-3xl p-4">
-	<h1 class="mb-2 text-2xl font-bold">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
-	<div class="mb-2 text-gray-600">Match Type: {matchType?.name || 'Unknown'}</div>
-	<div class="mb-6 text-gray-500">Status: {match.status || 'Unknown'}</div>
-
-	{#if is1v1}
-		<Scorecard1v1
-			players={[teamAPlayers[0], teamBPlayers[0]]}
-			{scores}
-			{holes}
-			{isLocked}
-			{saveScore}
-			getSyncStatus={getSyncStatus}
-		/>
-	{:else if is2v2Scramble}
-		<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-	{:else if is2v2BestBall}
-		<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-	{:else if is2v2Shamble}
-		<Scorecard2v2Shamble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-	{:else if is4v4TeamScramble}
-		<Scorecard4v4TeamScramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-	{:else}
-		<div class="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
-			<h3 class="font-bold">Match Type Not Implemented</h3>
-			<p>This match type ({matchType?.name || 'Unknown'}) is not yet fully implemented.</p>
+<section class="container mx-auto max-w-4xl p-4">
+	<Card>
+		<div class="mb-6">
+			<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+				<div>
+					<h1 class="heading-lg mb-2">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
+					<div class="flex flex-wrap gap-3 items-center">
+						<Badge variant="primary">{matchType?.name || 'Unknown'}</Badge>
+						<Badge variant={match.status === 'complete' ? 'success' : match.status === 'in_progress' ? 'warning' : 'secondary'}>
+							{match.status === 'complete' ? 'Completed' : match.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
+						</Badge>
+					</div>
+				</div>
+				
+				{#if authState?.user?.isAdmin}
+					<div class="mt-4 md:mt-0">
+						<Button 
+							variant={isLocked ? "danger" : "primary"} 
+							size="sm" 
+							on:click={toggleMatchLock}
+						>
+							{isLocked ? 'Unlock Match' : 'Lock Match'}
+						</Button>
+					</div>
+				{/if}
+			</div>
+			
+			{#if currentLeadAmount !== null}
+				<div class="bg-blue-50 border border-blue-100 rounded-md p-4 mt-4">
+					<div class="font-semibold text-blue-800">Match Status: {currentLeadAmount > 0 ? `${leadingTeam?.name || 'Team'} leads by ${currentLeadAmount}` : 'All Square'}</div>
+					<div class="text-blue-600 text-sm mt-1">Current Hole: {currentHole}</div>
+				</div>
+			{/if}
 		</div>
-	{/if}
+
+		{#if is1v1}
+			<Scorecard1v1
+				players={[teamAPlayers[0], teamBPlayers[0]]}
+				{scores}
+				{holes}
+				{isLocked}
+				{saveScore}
+				getSyncStatus={getSyncStatus}
+			/>
+		{:else if is2v2Scramble}
+			<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
+		{:else if is2v2BestBall}
+			<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
+		{:else if is2v2Shamble}
+			<Scorecard2v2Shamble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
+		{:else if is4v4TeamScramble}
+			<Scorecard4v4TeamScramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
+		{:else}
+			<div class="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
+				<h3 class="font-bold">Match Type Not Implemented</h3>
+				<p>This match type ({matchType?.name || 'Unknown'}) is not yet fully implemented.</p>
+			</div>
+		{/if}
+	</Card>
 </section>

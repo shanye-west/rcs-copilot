@@ -1,3 +1,53 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom theme colors based on RC Scoreboard design */
+:root {
+  --color-primary: #1e3a8a; /* dark blue */
+  --color-secondary: #2563eb; /* medium blue */
+  --color-accent: #3b82f6; /* light blue */
+  --color-background: #f8fafc; /* light gray/blue background */
+  --color-card: #ffffff; /* white */
+  --color-text-primary: #1e293b; /* dark slate */
+  --color-text-secondary: #64748b; /* medium slate */
+  --color-success: #22c55e; /* green */
+  --color-warning: #f59e0b; /* amber */
+  --color-error: #ef4444; /* red */
+  --color-heading: #0f172a; /* darker slate for headings */
+}
+
+/* Custom component styles */
+@layer components {
+  .btn-primary {
+    @apply bg-blue-800 hover:bg-blue-900 text-white font-medium py-2 px-4 rounded-md shadow-sm;
+  }
+  
+  .btn-secondary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md shadow-sm;
+  }
+  
+  .btn-outline {
+    @apply border border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-2 px-4 rounded-md;
+  }
+  
+  .card {
+    @apply bg-white rounded-lg shadow-md p-4 border border-gray-100;
+  }
+  
+  .input {
+    @apply rounded-md border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500;
+  }
+  
+  .heading-lg {
+    @apply text-2xl font-bold text-blue-900;
+  }
+  
+  .heading-md {
+    @apply text-xl font-semibold text-blue-900;
+  }
+  
+  .heading-sm {
+    @apply text-lg font-medium text-blue-800;
+  }
+}
