@@ -1,4 +1,15 @@
 <script lang="ts">
+	import { auth } from '$lib/stores/auth';
+	import { get } from 'svelte/store';
+	import { onMount } from 'svelte';
+	let isAdmin = false;
+	onMount(() => {
+		const unsubscribe = auth.subscribe((state) => {
+			isAdmin = !!state.user?.isAdmin;
+		});
+		return unsubscribe;
+	});
+
 	export let data;
 	const { tournament, rounds, matches, matchTypes } = data;
 
@@ -10,6 +21,9 @@
 		const type = matchTypes.find((t) => t.id === matchTypeId);
 		return type ? type.name : matchTypeId;
 	}
+
+	let showEditTournament = false;
+	let showAddRound = false;
 </script>
 
 <section class="mx-auto max-w-3xl p-4">
@@ -93,6 +107,35 @@
 	{:else}
 		<div class="py-12 text-center text-gray-500">
 			<p>No active tournament found.</p>
+		</div>
+	{/if}
+
+	{#if isAdmin}
+		<div class="mb-5 flex justify-between items-center">
+			<button class="px-4 py-2 rounded border flex items-center gap-2 bg-white hover:bg-gray-50" on:click={() => showEditTournament = true}>
+				<span>Edit Tournament</span>
+			</button>
+			<button class="px-4 py-2 rounded border flex items-center gap-2 bg-blue-600 text-white hover:bg-blue-700" on:click={() => showAddRound = true}>
+				<span>Add New Round</span>
+			</button>
+		</div>
+	{/if}
+	{#if showEditTournament}
+		<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+			<div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+				<h2 class="text-xl font-bold mb-4">Edit Tournament</h2>
+				<!-- Tournament edit form goes here -->
+				<button class="mt-4 px-4 py-2 rounded bg-gray-200" on:click={() => showEditTournament = false}>Close</button>
+			</div>
+		</div>
+	{/if}
+	{#if showAddRound}
+		<div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+			<div class="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+				<h2 class="text-xl font-bold mb-4">Add New Round</h2>
+				<!-- Add round form goes here -->
+				<button class="mt-4 px-4 py-2 rounded bg-gray-200" on:click={() => showAddRound = false}>Close</button>
+			</div>
 		</div>
 	{/if}
 </section>
