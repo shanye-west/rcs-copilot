@@ -7,7 +7,7 @@ import { get } from 'svelte/store';
 import { renderComponent } from '../mocks/svelte-test-helper';
 
 // Mock the offlineStore
-vi.mock('$lib/stores/offline-store', async () => {
+vi.mock('../stores/offline-store', async () => {
 	const { writable } = await import('svelte/store');
 
 	const defaultState = {

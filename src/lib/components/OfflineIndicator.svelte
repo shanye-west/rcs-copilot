@@ -1,10 +1,17 @@
 <script lang="ts">
-	import { offlineStore } from '$lib/stores/offline-store';
+	import { offlineStore } from '../stores/offline-store';
 	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 
-	// Get the offline store state
-	$: isOnline = $offlineStore.isOnline;
-	$: unsyncedCount = $offlineStore.scores.filter((score) => !score.synced).length;
+	// Local state for store
+	let state = get(offlineStore);
+	const unsubscribe = offlineStore.subscribe((val) => {
+		state = val;
+	});
+
+	// Derived values
+	$: isOnline = state.isOnline;
+	$: unsyncedCount = state.scores.filter((score) => !score.synced).length;
 
 	// Show a toast when coming back online
 	let showToast = false;
@@ -24,23 +31,27 @@
 
 	// Watch for changes in online status
 	$: {
-		if (isOnline && unsyncedCount > 0) {
-			displayToast(
-				`You're back online. Syncing ${unsyncedCount} score${unsyncedCount === 1 ? '' : 's'}...`,
-				'success'
-			);
-		} else if (!isOnline) {
-			displayToast("You're offline. Scores will sync when reconnected.", 'error');
+		if (typeof isOnline !== 'undefined' && typeof unsyncedCount !== 'undefined') {
+			if (isOnline && unsyncedCount > 0) {
+				displayToast(
+					`You're back online. Syncing ${unsyncedCount} score${unsyncedCount === 1 ? '' : 's'}...`,
+					'success'
+				);
+			} else if (!isOnline) {
+				displayToast("You're offline. Scores will sync when reconnected.", 'error');
+			}
 		}
 	}
 
 	// Check connection on mount
 	onMount(() => {
-		if (!isOnline && unsyncedCount > 0) {
-			displayToast(
-				`You're offline with ${unsyncedCount} unsynced score${unsyncedCount === 1 ? '' : 's'}.`,
-				'error'
-			);
+		if (typeof isOnline !== 'undefined' && typeof unsyncedCount !== 'undefined') {
+			if (!isOnline && unsyncedCount > 0) {
+				displayToast(
+					`You're offline with ${unsyncedCount} unsynced score${unsyncedCount === 1 ? '' : 's'}.`,
+					'error'
+				);
+			}
 		}
 	});
 </script>
@@ -62,7 +73,7 @@
 			<div class="flex items-center rounded bg-green-700 px-3 py-1 text-sm text-white shadow-md">
 				<span class="mr-2 h-3 w-3 rounded-full bg-green-400"></span>
 				<span>Online</span>
-				<span class="ml-2 text-xs text-gray-200">Last sync: {new Date($offlineStore.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+				<span class="ml-2 text-xs text-gray-200">Last sync: {new Date(state.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
 			</div>
 		{/if}
 	</div>
