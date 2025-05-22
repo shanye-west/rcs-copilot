@@ -249,8 +249,9 @@ export interface Database {
 		};
 		Views: {
 			/**
-			 * match_scores: Aggregates scores per match/player/hole, joining with match and player info.
+			 * match_scores: View for aggregated scores per match/player/hole, joining with match and player info.
 			 * This is a view, not a table. See match_scores_view.sql for definition.
+			 * Used for frontend queries that require player and match context with each score.
 			 */
 			match_scores: {
 				Row: {
