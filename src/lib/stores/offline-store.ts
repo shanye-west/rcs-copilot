@@ -185,6 +185,11 @@ function createOfflineStore() {
 					console.error('Failed to initialize offline store:', error);
 				}
 			}
+		},
+
+		// TEST-ONLY: allow direct state setting in tests
+		setStateForTest: (state: OfflineState) => {
+			set(state);
 		}
 	};
 }

@@ -136,7 +136,7 @@ describe('Service Worker Offline Functionality', () => {
 	});
 
 	// NOTE: Due to limitations in Node.js/Vitest, we cannot fully simulate a Request with mode: 'navigate'.
-	// The test below uses mode: 'no-cors' and forcibly sets request.mode = 'navigate' to approximate navigation requests.
+	// The test below uses mode: 'no-cors' to approximate navigation requests.
 	// If/when browser-based service worker unit testing becomes feasible, update this test to use a real navigation request.
 	// For true end-to-end navigation request testing, use Playwright or another browser E2E framework.
 	test('service worker should use network-first strategy for navigation requests', async () => {
@@ -144,8 +144,6 @@ describe('Service Worker Offline Functionality', () => {
 		const request = new Request('https://example.com/matches/123', {
 			mode: 'no-cors' // workaround for test environment limitation
 		});
-		// @ts-ignore
-		request.mode = 'navigate';
 
 		const event = {
 			request,

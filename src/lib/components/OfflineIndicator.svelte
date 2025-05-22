@@ -48,15 +48,21 @@
 <!-- Offline indicator that's always visible -->
 <div class="fixed top-0 right-0 z-50 p-2">
 	<div class="flex items-center gap-2">
-		{#if !isOnline || unsyncedCount > 0}
+		{#if !isOnline}
 			<div class="flex items-center rounded bg-gray-800 px-3 py-1 text-sm text-white shadow-md">
-				{#if !isOnline}
-					<span class="mr-2 h-3 w-3 rounded-full bg-red-500"></span>
-					<span>Offline</span>
-				{:else if unsyncedCount > 0}
-					<span class="mr-2 h-3 w-3 animate-pulse rounded-full bg-yellow-500"></span>
-					<span>Syncing ({unsyncedCount})</span>
-				{/if}
+				<span class="mr-2 h-3 w-3 rounded-full bg-red-500"></span>
+				<span>Offline</span>
+			</div>
+		{:else if unsyncedCount > 0}
+			<div class="flex items-center rounded bg-gray-800 px-3 py-1 text-sm text-white shadow-md">
+				<span data-testid="sync-status" class="mr-2 h-3 w-3 animate-pulse rounded-full bg-yellow-500"></span>
+				<span>Syncing ({unsyncedCount})</span>
+			</div>
+		{:else}
+			<div class="flex items-center rounded bg-green-700 px-3 py-1 text-sm text-white shadow-md">
+				<span class="mr-2 h-3 w-3 rounded-full bg-green-400"></span>
+				<span>Online</span>
+				<span class="ml-2 text-xs text-gray-200">Last sync: {new Date($offlineStore.lastSync).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
 			</div>
 		{/if}
 	</div>
