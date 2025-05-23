@@ -1,284 +1,529 @@
 <script lang="ts">
-	// Define interfaces for type safety
+	import { onMount } from 'svelte';
+	import { supabase } from '$lib/supabase';
+	import { offlineStore } from '$lib/stores/offline-store';
+
+	// Type definitions
 	interface Player {
+		player_id: string;
+		team_id: string;
 		player: {
 			id: string;
 			username: string;
-			handicap?: number;
-			handicap_strokes?: number[];
-			hole_stroke_indexes?: number[];
+			handicap_index?: number;
 		};
-		player_id: string;
-		team_id: string;
+		playing_course_handicap?: number;
+		course_strokes?: number;
 		scores?: Record<number, number | string>;
-		username?: string;
 	}
 
-	interface Score {
-		player_id: string;
+	interface Course {
+		id: string;
+		name: string;
+		course_rating: number;
+		course_slope: number;
+	}
+
+	interface Hole {
 		hole_number: number;
-		net_score?: number;
-		gross_score?: number;
+		par: number;
+		hole_handicap_rank: number;
 	}
 
-	export let teamAPlayers: Player[];
-	export let teamBPlayers: Player[];
-	export let scores: Score[];
+	interface TeamScore {
+		hole_number: number;
+		team_a_net: number | null;
+		team_b_net: number | null;
+		winning_team: 'A' | 'B' | 'tie' | null;
+	}
+
+	// Props
+	export let teamAPlayers: Player[] = [];
+	export let teamBPlayers: Player[] = [];
+	export let scores: any[] = [];
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
-	export let saveScore: (playerId: string, hole: number, value: number) => void;
+	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
+	export let getSyncStatus: ((playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined) | undefined;
+	export let matchId: string;
+	export let courseId: string;
 
-	// Helper to get score for a player/hole
-	function getScore(playerId: string, hole: number): number | string {
-		return scores.find((s) => s.player_id === playerId && s.hole_number === hole)?.net_score ?? '';
+	// Local state
+	let course: Course | null = null;
+	let courseHoles: Hole[] = [];
+	let teamScores: Record<number, TeamScore> = {};
+	let matchStatus = 'AS';
+	let isCalculating = false;
+	let errorMessage = '';
+	let isOffline = false;
+
+	// Subscribe to offline store
+	$: isOffline = !$offlineStore.isOnline;
+
+	// Reactive calculations
+	$: safeTeamAPlayers = teamAPlayers || [];
+	$: safeTeamBPlayers = teamAPlayers || [];
+	$: safeHoles = holes || [];
+
+	onMount(async () => {
+		await loadCourseData();
+		await calculatePlayingHandicaps();
+		initializePlayerScores();
+		calculateAllTeamScores();
+	});
+
+	// Load course and hole data
+	async function loadCourseData() {
+		if (!courseId) return;
+
+		try {
+			// Load course data
+			const { data: courseData, error: courseError } = await supabase
+				.from('courses')
+				.select('*')
+				.eq('id', courseId)
+				.single();
+
+			if (courseError) throw courseError;
+			course = courseData;
+
+			// Load hole data
+			const { data: holesData, error: holesError } = await supabase
+				.from('holes')
+				.select('*')
+				.eq('course_id', courseId)
+				.order('hole_number');
+
+			if (holesError) throw holesError;
+			courseHoles = holesData || [];
+
+		} catch (error) {
+			console.error('Error loading course data:', error);
+			errorMessage = 'Failed to load course data';
+		}
 	}
 
-	// Helper to get handicap dots for a player/hole
-	function getDots(player: Player['player'], hole: number): string {
-		// Assumptions:
-		// - player.handicap: integer, total course handicap for 18 holes
-		// - player.handicap_strokes: optional array of 18 numbers (1 if gets stroke on hole, 0 otherwise)
-		// - holes: array of 1-18
-		// - player.hole_stroke_indexes: optional array of 18 numbers (stroke index for each hole, 1=hardest)
+	// Calculate playing course handicaps using GHIN formula
+	async function calculatePlayingHandicaps() {
+		if (!course) return;
 
-		// If player.handicap_strokes exists, use it
-		if (player.handicap_strokes && player.handicap_strokes.length === 18) {
-			return player.handicap_strokes[hole - 1] > 0
-				? '•'.repeat(player.handicap_strokes[hole - 1])
-				: '';
+		const allPlayers = [...safeTeamAPlayers, ...safeTeamBPlayers];
+		
+		// Calculate course handicap for each player
+		for (const player of allPlayers) {
+			if (player.player.handicap_index && course.course_slope && course.course_rating) {
+				// GHIN formula: (Handicap Index × Slope Rating ÷ 113) + (Course Rating - Par)
+				const par = courseHoles.reduce((sum, hole) => sum + hole.par, 0);
+				const courseHandicap = Math.round(
+					(player.player.handicap_index * course.course_slope / 113) + 
+					(course.course_rating - par)
+				);
+				
+				player.playing_course_handicap = Math.max(0, courseHandicap);
+			}
 		}
 
-		// Otherwise, calculate dots based on handicap and stroke index
-		const handicap = player.handicap || 0;
-		if (handicap === 0) return '';
+		// Find lowest handicap for stroke allocation
+		const lowestHandicap = Math.min(
+			...allPlayers
+				.map(p => p.playing_course_handicap || 0)
+				.filter(h => h !== undefined)
+		);
 
-		// If player.hole_stroke_indexes exists, use it, else assume holes are ordered by difficulty
-		let strokeIndexes =
-			player.hole_stroke_indexes && player.hole_stroke_indexes.length === 18
-				? player.hole_stroke_indexes
-				: Array.from({ length: 18 }, (_, i) => i + 1); // 1-18
-
-		// Find the stroke index for this hole
-		const thisHoleStrokeIndex = strokeIndexes[hole - 1];
-
-		// Calculate how many strokes (dots) this player gets on this hole
-		let dots = 0;
-		if (handicap >= 18) {
-			dots = 1;
-			if (handicap - 18 >= 18 - thisHoleStrokeIndex + 1) {
-				dots = 2;
-			} else if (handicap - 18 > 0 && thisHoleStrokeIndex <= handicap - 18) {
-				dots = 2;
+		// Calculate strokes relative to lowest handicap
+		for (const player of allPlayers) {
+			if (player.playing_course_handicap !== undefined) {
+				player.course_strokes = Math.max(0, player.playing_course_handicap - lowestHandicap);
 			}
-		} else if (handicap > 0 && thisHoleStrokeIndex <= handicap) {
-			dots = 1;
 		}
-		return dots > 0 ? '•'.repeat(dots) : '';
-	}
 
-	// For each hole, get the best net score for each team
-	function getBestNetScore(players: Player[], hole: number): number | string {
-		const netScores = players
-			.filter((p) => p && p.player && p.player.id)
-			.map((p) => getScore(p.player.id, hole))
-			.filter(Boolean);
-		if (netScores.length === 0) return '';
-
-		// Filter out any string values and convert all to numbers
-		const numericScores = netScores
-			.filter((score) => typeof score === 'number')
-			.map((score) => Number(score));
-
-		if (numericScores.length === 0) return '';
-		return Math.min(...numericScores);
-	}
-
-	// Calculate the total score for each team
-	function getTeamTotal(players: Player[]): number {
-		let total = 0;
-		holes.forEach(hole => {
-			const bestScore = getBestNetScore(players, hole);
-			if (typeof bestScore === 'number') {
-				total += bestScore;
+		// Store playing handicaps in database
+		try {
+			for (const player of allPlayers) {
+				if (player.playing_course_handicap !== undefined) {
+					await supabase
+						.from('match_players')
+						.update({ playing_course_handicap: player.playing_course_handicap })
+						.eq('match_id', matchId)
+						.eq('player_id', player.player_id);
+				}
 			}
+		} catch (error) {
+			console.error('Error saving handicaps:', error);
+		}
+	}
+
+	// Initialize player scores from existing data
+	function initializePlayerScores() {
+		const allPlayers = [...safeTeamAPlayers, ...safeTeamBPlayers];
+		
+		allPlayers.forEach(player => {
+			if (!player.scores) {
+				player.scores = {};
+			}
+			
+			// Load existing scores
+			safeHoles.forEach(hole => {
+				const existingScore = scores.find(s => 
+					s.player_id === player.player_id && s.hole_number === hole
+				);
+				if (existingScore && existingScore.gross_score) {
+					player.scores[hole] = existingScore.gross_score;
+				}
+			});
 		});
-		return total;
 	}
-	
-	// Calculate match status for the 2v2 match
-	function getMatchStatus(): string {
-		let teamAUp = 0;
-		let teamBUp = 0;
+
+	// Calculate if player gets stroke on this hole
+	function getStrokeForHole(player: Player, holeNumber: number): boolean {
+		if (!player.course_strokes || !courseHoles.length) return false;
 		
-		for (let hole of holes) {
-			const teamAScore = getBestNetScore(teamAPlayers, hole);
-			const teamBScore = getBestNetScore(teamBPlayers, hole);
-			
-			if (teamAScore === '' || teamBScore === '') continue;
-			
-			if (teamAScore < teamBScore) teamAUp++;
-			else if (teamBScore < teamAScore) teamBUp++;
+		const hole = courseHoles.find(h => h.hole_number === holeNumber);
+		if (!hole) return false;
+
+		return hole.hole_handicap_rank <= player.course_strokes;
+	}
+
+	// Calculate net score for a player on a hole
+	function calculateNetScore(player: Player, holeNumber: number): number | null {
+		const grossScore = player.scores?.[holeNumber];
+		if (!grossScore || grossScore === '') return null;
+
+		const numGross = Number(grossScore);
+		const strokesReceived = getStrokeForHole(player, holeNumber) ? 1 : 0;
+		
+		return numGross - strokesReceived;
+	}
+
+	// Calculate team scores for all holes
+	function calculateAllTeamScores() {
+		safeHoles.forEach(hole => {
+			calculateTeamScoreForHole(hole);
+		});
+		updateMatchStatus();
+	}
+
+	// Calculate team score for specific hole
+	function calculateTeamScoreForHole(holeNumber: number) {
+		// Team A best net score
+		const teamANetScores = safeTeamAPlayers
+			.map(player => calculateNetScore(player, holeNumber))
+			.filter(score => score !== null) as number[];
+		
+		const teamABest = teamANetScores.length > 0 ? Math.min(...teamANetScores) : null;
+
+		// Team B best net score
+		const teamBNetScores = safeTeamBPlayers
+			.map(player => calculateNetScore(player, holeNumber))
+			.filter(score => score !== null) as number[];
+		
+		const teamBBest = teamBNetScores.length > 0 ? Math.min(...teamBNetScores) : null;
+
+		// Determine winning team
+		let winningTeam: 'A' | 'B' | 'tie' | null = null;
+		if (teamABest !== null && teamBBest !== null) {
+			if (teamABest < teamBBest) winningTeam = 'A';
+			else if (teamBBest < teamABest) winningTeam = 'B';
+			else winningTeam = 'tie';
 		}
-		
-		if (teamAUp === teamBUp) return 'AS';
-		if (teamAUp > teamBUp) return `${teamAUp - teamBUp}↑`;
-		return `${teamBUp - teamAUp}↓`;
+
+		teamScores[holeNumber] = {
+			hole_number: holeNumber,
+			team_a_net: teamABest,
+			team_b_net: teamBBest,
+			winning_team: winningTeam
+		};
 	}
-	
-	// Optional function for sync status (to match the 1v1 scorecard)
-	export let getSyncStatus: ((playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined) | undefined = undefined;
+
+	// Update overall match status
+	function updateMatchStatus() {
+		let teamAHoles = 0;
+		let teamBHoles = 0;
+
+		Object.values(teamScores).forEach(score => {
+			if (score.winning_team === 'A') teamAHoles++;
+			else if (score.winning_team === 'B') teamBHoles++;
+		});
+
+		const difference = teamAHoles - teamBHoles;
+		
+		if (difference === 0) {
+			matchStatus = 'AS';
+		} else if (difference > 0) {
+			matchStatus = `${difference}↑A`;
+		} else {
+			matchStatus = `${Math.abs(difference)}↑B`;
+		}
+	}
+
+	// Handle score input
+	async function handleScoreChange(player: Player, holeNumber: number, event: Event) {
+		if (isLocked) return;
+
+		const target = event.target as HTMLInputElement;
+		const value = target.value;
+
+		// Validate input
+		if (value !== '' && (isNaN(Number(value)) || Number(value) < 1 || Number(value) > 15)) {
+			return;
+		}
+
+		// Update player score
+		if (!player.scores) player.scores = {};
+		player.scores[holeNumber] = value;
+
+		// Save to database/offline store
+		try {
+			const numericValue = value === '' ? null : Number(value);
+			await saveScore(player.player_id, holeNumber, numericValue);
+			
+			// Recalculate team scores
+			calculateTeamScoreForHole(holeNumber);
+			updateMatchStatus();
+			
+		} catch (error) {
+			console.error('Error saving score:', error);
+			errorMessage = 'Failed to save score. Please try again.';
+			
+			// Show error notification
+			setTimeout(() => {
+				errorMessage = '';
+			}, 3000);
+		}
+	}
+
+	// Check if player's score is being used as team score
+	function isPlayerScoreUsed(player: Player, holeNumber: number): boolean {
+		const playerNet = calculateNetScore(player, holeNumber);
+		if (playerNet === null) return false;
+
+		const teamScore = teamScores[holeNumber];
+		if (!teamScore) return false;
+
+		const teamNet = player.team_id === safeTeamAPlayers[0]?.team_id 
+			? teamScore.team_a_net 
+			: teamScore.team_b_net;
+
+		return playerNet === teamNet;
+	}
+
+	// Get total scores
+	function getPlayerTotal(player: Player, holes: number[]): number {
+		return holes.reduce((total, hole) => {
+			const score = player.scores?.[hole];
+			return total + (score && score !== '' ? Number(score) : 0);
+		}, 0);
+	}
+
+	function getTeamTotal(players: Player[], holes: number[]): number {
+		return holes.reduce((total, hole) => {
+			const teamScore = teamScores[hole];
+			const teamNet = players === safeTeamAPlayers ? teamScore?.team_a_net : teamScore?.team_b_net;
+			return total + (teamNet || 0);
+		}, 0);
+	}
+
+	// Define hole ranges
+	$: frontNine = safeHoles.slice(0, 9);
+	$: backNine = safeHoles.slice(9, 18);
 </script>
+
+<!-- Error notification -->
+{#if errorMessage}
+	<div class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+		{errorMessage}
+	</div>
+{/if}
+
+<!-- Offline indicator -->
+{#if isOffline}
+	<div class="fixed top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-lg text-sm z-50">
+		📱 Offline
+	</div>
+{/if}
 
 <div class="mb-4">
 	<h2 class="text-lg font-bold text-center mb-2">2v2 Team Best Ball Scorecard</h2>
-	<div class="mb-2 text-center text-gray-600 text-lg font-semibold tracking-wide">
-		Status: <span class="inline-block px-2 py-1 rounded bg-gray-100 text-blue-700">{getMatchStatus()}</span>
+	<div class="mb-2 text-center text-gray-600 text-sm italic">
+		Each player plays their own ball. Best net score counts for the team.
 	</div>
+	<div class="mb-4 text-center text-gray-600 text-lg font-semibold tracking-wide">
+		Match Status: <span class="inline-block px-3 py-1 rounded {
+			matchStatus === 'AS' ? 'bg-gray-100 text-gray-700' :
+			matchStatus.includes('A') ? 'bg-blue-100 text-blue-700' :
+			'bg-red-100 text-red-700'
+		}">{matchStatus}</span>
+	</div>
+
 	<div class="overflow-x-auto">
-		<table class="min-w-full border text-base rounded-lg shadow bg-white">
+		<table class="min-w-full border text-sm rounded-lg shadow bg-white">
 			<thead class="bg-gray-50">
 				<tr>
 					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
-					{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
-						<th class="border px-2 py-1 text-center text-blue-700 font-bold bg-blue-50">
-							{#if p && p.player && p.player.username}
-								{p.player.username}
-							{:else if p && p.username}
-								{p.username}
-							{:else}
-								Player {p ? p.player_id : 'Unknown'}
-							{/if}
+					<!-- Team A Players -->
+					{#each safeTeamAPlayers as player (player.player_id)}
+						<th class="border px-1 py-1 text-center text-blue-700 font-bold bg-blue-50 min-w-[80px]">
+							<div class="text-xs">{player.player.username}</div>
+							<div class="text-xs text-blue-500">HC: {player.playing_course_handicap || 0}</div>
 						</th>
 					{/each}
-					<th class="border px-2 py-1 text-center font-bold bg-blue-100">Team A Best Ball</th>
-					{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
-						<th class="border px-2 py-1 text-center text-green-700 font-bold bg-green-50">
-							{#if p && p.player && p.player.username}
-								{p.player.username}
-							{:else if p && p.username}
-								{p.username}
-							{:else}
-								Player {p ? p.player_id : 'Unknown'}
-							{/if}
+					<th class="border px-2 py-1 text-center font-bold bg-blue-100 min-w-[60px]">Team A</th>
+					
+					<!-- Team B Players -->
+					{#each safeTeamBPlayers as player (player.player_id)}
+						<th class="border px-1 py-1 text-center text-red-700 font-bold bg-red-50 min-w-[80px]">
+							<div class="text-xs">{player.player.username}</div>
+							<div class="text-xs text-red-500">HC: {player.playing_course_handicap || 0}</div>
 						</th>
 					{/each}
-					<th class="border px-2 py-1 text-center font-bold bg-green-100">Team B Best Ball</th>
-				</tr>
-				<tr>
-					<th class="border px-2 py-1 text-xs text-gray-400 bg-gray-100 sticky left-0 z-10">Handicap</th>
-					{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
-						<th class="border px-2 py-1 text-xs text-blue-500 bg-blue-50">
-							{#if p && p.player}
-								{holes.map((h) => getDots(p.player, h)).join(' ')}
-							{:else}
-								-
-							{/if}
-						</th>
-					{/each}
-					<th class="border px-2 py-1 bg-blue-100"></th>
-					{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
-						<th class="border px-2 py-1 text-xs text-green-600 bg-green-50">
-							{holes.map((h) => getDots(p.player, h)).join(' ')}
-						</th>
-					{/each}
-					<th class="border px-2 py-1 bg-green-100"></th>
+					<th class="border px-2 py-1 text-center font-bold bg-red-100 min-w-[60px]">Team B</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each holes as hole (hole)}
+				{#each safeHoles as hole (hole)}
+					{@const teamScore = teamScores[hole]}
 					<tr>
 						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
-						{#each teamAPlayers as p (p.player_id)}
-							<td class="border px-2 py-1 text-center">
+						
+						<!-- Team A Players -->
+						{#each safeTeamAPlayers as player (player.player_id)}
+							{@const netScore = calculateNetScore(player, hole)}
+							{@const isUsed = isPlayerScoreUsed(player, hole)}
+							<td class="border px-1 py-1 text-center {isUsed ? 'bg-green-100 ring-2 ring-green-300' : ''}">
 								{#if !isLocked}
-									<input
-										type="number"
-										min="1"
-										max="20"
-										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none shadow-inner"
-										value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
-										on:input={e => {
-											const target = e.target as HTMLInputElement;
-											const val = target.value;
-											if (p.scores) p.scores[hole] = val;
-										}}
-										on:change={() => {
-											if (p.scores && p.scores[hole] !== '') {
-												saveScore(p.player.id, hole, Number(p.scores[hole]));
-											}
-										}}
-									/>
-									<!-- Sync status indicator -->
-									{#if typeof getSyncStatus === 'function'}
-										{#if getSyncStatus(p.player.id, hole) === 'pending'}
-											<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-										{:else if getSyncStatus(p.player.id, hole) === 'synced'}
-											<span title="Synced" class="ml-1 text-green-600">✔️</span>
-										{:else if getSyncStatus(p.player.id, hole) === 'failed'}
-											<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+									<div class="relative">
+										<input
+											type="number"
+											min="1"
+											max="15"
+											class="w-14 h-8 rounded border p-1 text-center text-sm font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none"
+											value={player.scores?.[hole] || ''}
+											on:input={(e) => handleScoreChange(player, hole, e)}
+										/>
+										{#if getStrokeForHole(player, hole)}
+											<span class="absolute -top-1 -right-1 text-xs text-blue-600">•</span>
+										{/if}
+									</div>
+									<div class="text-xs mt-1 text-gray-500">
+										{netScore !== null ? `Net: ${netScore}` : ''}
+									</div>
+									<!-- Sync status -->
+									{#if getSyncStatus}
+										{@const status = getSyncStatus(player.player_id, hole)}
+										{#if status === 'pending'}
+											<span title="Pending sync" class="text-xs text-yellow-500">⏳</span>
+										{:else if status === 'synced'}
+											<span title="Synced" class="text-xs text-green-600">✔️</span>
+										{:else if status === 'failed'}
+											<span title="Sync failed" class="text-xs text-red-600">⚠️</span>
 										{/if}
 									{/if}
 								{:else}
-									{getScore(p.player.id, hole)}
+									<div>{player.scores?.[hole] || ''}</div>
+									<div class="text-xs text-gray-500">
+										{netScore !== null ? `Net: ${netScore}` : ''}
+									</div>
 								{/if}
-								<div class="text-xs text-gray-400 mt-1">{getDots(p.player, hole)}</div>
 							</td>
 						{/each}
-						<td class="border px-2 py-1 text-center font-bold bg-blue-100">
-							{getBestNetScore(teamAPlayers, hole)}
+						
+						<!-- Team A Best Score -->
+						<td class="border px-2 py-1 text-center font-bold bg-blue-100 {
+							teamScore?.winning_team === 'A' ? 'bg-green-200 text-green-800' :
+							teamScore?.winning_team === 'tie' ? 'bg-yellow-200 text-yellow-800' : ''
+						}">
+							{teamScore?.team_a_net || ''}
 						</td>
-						{#each teamBPlayers as p (p.player_id)}
-							<td class="border px-2 py-1 text-center">
+						
+						<!-- Team B Players -->
+						{#each safeTeamBPlayers as player (player.player_id)}
+							{@const netScore = calculateNetScore(player, hole)}
+							{@const isUsed = isPlayerScoreUsed(player, hole)}
+							<td class="border px-1 py-1 text-center {isUsed ? 'bg-green-100 ring-2 ring-green-300' : ''}">
 								{#if !isLocked}
-									<input
-										type="number"
-										min="1"
-										max="20"
-										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-green-50 focus:bg-green-100 focus:outline-none shadow-inner"
-										value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
-										on:input={e => {
-											const target = e.target as HTMLInputElement;
-											const val = target.value;
-											if (p.scores) p.scores[hole] = val;
-										}}
-										on:change={() => {
-											if (p.scores && p.scores[hole] !== '') {
-												saveScore(p.player.id, hole, Number(p.scores[hole]));
-											}
-										}}
-									/>
-									<!-- Sync status indicator -->
-									{#if typeof getSyncStatus === 'function'}
-										{#if getSyncStatus(p.player.id, hole) === 'pending'}
-											<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-										{:else if getSyncStatus(p.player.id, hole) === 'synced'}
-											<span title="Synced" class="ml-1 text-green-600">✔️</span>
-										{:else if getSyncStatus(p.player.id, hole) === 'failed'}
-											<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+									<div class="relative">
+										<input
+											type="number"
+											min="1"
+											max="15"
+											class="w-14 h-8 rounded border p-1 text-center text-sm font-semibold bg-red-50 focus:bg-red-100 focus:outline-none"
+											value={player.scores?.[hole] || ''}
+											on:input={(e) => handleScoreChange(player, hole, e)}
+										/>
+										{#if getStrokeForHole(player, hole)}
+											<span class="absolute -top-1 -right-1 text-xs text-red-600">•</span>
+										{/if}
+									</div>
+									<div class="text-xs mt-1 text-gray-500">
+										{netScore !== null ? `Net: ${netScore}` : ''}
+									</div>
+									<!-- Sync status -->
+									{#if getSyncStatus}
+										{@const status = getSyncStatus(player.player_id, hole)}
+										{#if status === 'pending'}
+											<span title="Pending sync" class="text-xs text-yellow-500">⏳</span>
+										{:else if status === 'synced'}
+											<span title="Synced" class="text-xs text-green-600">✔️</span>
+										{:else if status === 'failed'}
+											<span title="Sync failed" class="text-xs text-red-600">⚠️</span>
 										{/if}
 									{/if}
 								{:else}
-									{getScore(p.player.id, hole)}
+									<div>{player.scores?.[hole] || ''}</div>
+									<div class="text-xs text-gray-500">
+										{netScore !== null ? `Net: ${netScore}` : ''}
+									</div>
 								{/if}
-								<div class="text-xs text-gray-400 mt-1">{getDots(p.player, hole)}</div>
 							</td>
 						{/each}
-						<td class="border px-2 py-1 text-center font-bold bg-green-100">
-							{getBestNetScore(teamBPlayers, hole)}
+						
+						<!-- Team B Best Score -->
+						<td class="border px-2 py-1 text-center font-bold bg-red-100 {
+							teamScore?.winning_team === 'B' ? 'bg-green-200 text-green-800' :
+							teamScore?.winning_team === 'tie' ? 'bg-yellow-200 text-yellow-800' : ''
+						}">
+							{teamScore?.team_b_net || ''}
 						</td>
 					</tr>
 				{/each}
-				<!-- Totals row -->
-				<tr class="bg-gray-100">
-					<td class="border px-2 py-1 font-bold text-center bg-gray-200 sticky left-0 z-10">Total</td>
-					{#each teamAPlayers as p (p.player_id)}
-						<td class="border px-2 py-1 text-center"></td>
+				
+				<!-- Front 9 Total -->
+				<tr class="bg-gray-100 font-semibold">
+					<td class="border px-2 py-1 text-center bg-gray-200 sticky left-0 z-10">OUT</td>
+					{#each safeTeamAPlayers as player}
+						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, frontNine)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center font-bold bg-blue-200">{getTeamTotal(teamAPlayers)}</td>
-					{#each teamBPlayers as p (p.player_id)}
-						<td class="border px-2 py-1 text-center"></td>
+					<td class="border px-2 py-1 text-center bg-blue-200">{getTeamTotal(safeTeamAPlayers, frontNine)}</td>
+					{#each safeTeamBPlayers as player}
+						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, frontNine)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center font-bold bg-green-200">{getTeamTotal(teamBPlayers)}</td>
+					<td class="border px-2 py-1 text-center bg-red-200">{getTeamTotal(safeTeamBPlayers, frontNine)}</td>
+				</tr>
+				
+				<!-- Back 9 Total -->
+				<tr class="bg-gray-100 font-semibold">
+					<td class="border px-2 py-1 text-center bg-gray-200 sticky left-0 z-10">IN</td>
+					{#each safeTeamAPlayers as player}
+						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, backNine)}</td>
+					{/each}
+					<td class="border px-2 py-1 text-center bg-blue-200">{getTeamTotal(safeTeamAPlayers, backNine)}</td>
+					{#each safeTeamBPlayers as player}
+						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, backNine)}</td>
+					{/each}
+					<td class="border px-2 py-1 text-center bg-red-200">{getTeamTotal(safeTeamBPlayers, backNine)}</td>
+				</tr>
+				
+				<!-- Total -->
+				<tr class="bg-gray-200 font-bold">
+					<td class="border px-2 py-1 text-center bg-gray-300 sticky left-0 z-10">TOTAL</td>
+					{#each safeTeamAPlayers as player}
+						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, safeHoles)}</td>
+					{/each}
+					<td class="border px-2 py-1 text-center bg-blue-300">{getTeamTotal(safeTeamAPlayers, safeHoles)}</td>
+					{#each safeTeamBPlayers as player}
+						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, safeHoles)}</td>
+					{/each}
+					<td class="border px-2 py-1 text-center bg-red-300">{getTeamTotal(safeTeamBPlayers, safeHoles)}</td>
 				</tr>
 			</tbody>
 		</table>
