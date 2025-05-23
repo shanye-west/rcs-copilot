@@ -1,164 +1,151 @@
+<!-- src/routes/matches/[matchId]/+page.svelte -->
 <script lang="ts">
-  import { onMount } from 'svelte';
   import { supabase } from '$lib/supabase';
-  import { page } from '$app/stores';
-  import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
-  import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
-  import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
-  import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
-  import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
-  import type { Player, Score, Course } from '$lib/utils/scoring';
+  import { onMount, onDestroy } from 'svelte';
+  import { auth } from '$lib/stores/auth';
+  import { offlineStore } from '$lib/stores/offline-store';
+  import { get } from 'svelte/store';
+  
+  // Import the new enhanced scorecard
+  import EnhancedScorecard from '$lib/components/EnhancedScorecard.svelte';
   
   export let data;
   
-  let match = data?.match || null;
-  let matchType = data?.matchType || { name: 'Unknown' };
-  let matchPlayers = data?.matchPlayers || [];
-  let scores = data?.scores || [];
-  let course = data?.course;
-  let error = data?.error;
-  let holes = Array.from({ length: 18 }, (_, i) => i + 1);
+  // Reactive data
+  $: match = data.match || {};
+  $: teams = data.teams || [];
+  $: matchType = data.matchType || {};
+  $: matchPlayers = data.matchPlayers || [];
+  $: scores = data.scores || [];
   
-  // Save score for admin (simplified version)
-  async function saveScore(playerId: string, hole: number, value: number | null) {
-    // If the value is null, there's nothing to save
-    if (value === null || !match) return;
+  // Subscribe to auth store
+  let authState: any;
+  const unsubscribe = auth.subscribe((state) => {
+    authState = state;
+  });
+  
+  // Clean up subscription
+  onDestroy(unsubscribe);
+  
+  // Get raw matchPlayers data and find unique team IDs
+  const uniqueTeamIds = [...new Set(matchPlayers.map((mp) => mp.team_id))];
+  
+  // Filter players by team_id
+  let teamAPlayers = [];
+  let teamBPlayers = [];
+  
+  if (uniqueTeamIds.length >= 1) {
+    const teamAId = uniqueTeamIds[0];
+    teamAPlayers = matchPlayers.filter((mp) => mp.team_id === teamAId);
     
-    try {
-      const upsertPayload = {
-        match_id: match.id,
-        player_id: playerId,
-        hole_number: hole,
-        gross_score: value,
-        updated_by: 'admin',
-        updated_at: new Date().toISOString()
-      };
-      
-      const { error } = await supabase.from('match_scores').upsert(upsertPayload);
-      if (error) throw error;
-      
-      // Update the local scores
-      const existingScoreIndex = scores.findIndex(
-        s => s.player_id === playerId && s.hole_number === hole
-      );
-      
-      if (existingScoreIndex >= 0) {
-        scores[existingScoreIndex].gross_score = value;
-      } else {
-        scores = [
-          ...scores,
-          {
-            player_id: playerId,
-            hole_number: hole,
-            gross_score: value
-          }
-        ];
-      }
-    } catch (err) {
-      console.error('Error saving score:', err);
-      alert('Failed to save score: ' + (err.message || 'Unknown error'));
+    if (uniqueTeamIds.length >= 2) {
+      const teamBId = uniqueTeamIds[1];
+      teamBPlayers = matchPlayers.filter((mp) => mp.team_id === teamBId);
     }
   }
   
-  // No need for sync status in admin view
-  function getSyncStatus() {
-    return 'synced';
+  // Helper to check if match is locked
+  const isLocked = match?.is_locked;
+  
+  // Save score to Supabase with offline support
+  async function handleScoreChange(event: CustomEvent) {
+    const { playerId, hole, score } = event.detail;
+    
+    if (!authState?.user) return;
+    
+    // Determine team ID from player's team_id
+    const playerEntry = matchPlayers.find((p) => p.player_id === playerId);
+    if (!playerEntry) return;
+    
+    // Add to offline store first
+    if (score !== null) {
+      offlineStore.addScore({
+        player_id: playerId,
+        hole_number: hole,
+        score,
+        match_id: match.id
+      });
+    }
+    
+    // If we're online, try to save to Supabase directly
+    if ($offlineStore.isOnline) {
+      try {
+        const { error } = await supabase.from('scores').upsert(
+          [
+            {
+              match_id: match.id,
+              player_id: playerId,
+              team: playerEntry.team_id,
+              hole_number: hole,
+              gross_score: score
+            }
+          ],
+          { onConflict: 'match_id,player_id,hole_number' }
+        );
+        
+        if (error) {
+          console.error('Error saving score:', error.message);
+        } else {
+          // Mark as synced in the offline store
+          offlineStore.markSynced(playerId, hole, match.id);
+        }
+      } catch (error) {
+        console.error('Failed to save score:', error);
+      }
+    }
   }
   
-  // Helpers to determine match types
-  $: is1v1 = matchType?.name === '1v1 Individual Match';
-  $: is2v2Scramble = matchType?.name === '2v2 Team Scramble';
-  $: is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
-  $: is2v2Shamble = matchType?.name === '2v2 Team Shamble';
-  $: is4v4TeamScramble = matchType?.name === '4v4 Team Scramble';
-  
-  // Get players for each team
-  $: uniqueTeamIds = [...new Set(matchPlayers.map(mp => mp.team_id))];
-  $: teamAId = uniqueTeamIds[0];
-  $: teamBId = uniqueTeamIds[1];
-  $: teamAPlayers = matchPlayers.filter(mp => mp.team_id === teamAId);
-  $: teamBPlayers = matchPlayers.filter(mp => mp.team_id === teamBId);
+  // Toggle lock functionality (admin only)
+  async function toggleLock() {
+    if (!authState?.user?.isAdmin) return;
+    
+    try {
+      const { error } = await supabase
+        .from('matches')
+        .update({ is_locked: !isLocked })
+        .eq('id', match.id);
+        
+      if (error) {
+        console.error('Error toggling match lock:', error.message);
+      } else {
+        // Reload the page to get updated data
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Failed to toggle match lock:', error);
+    }
+  }
 </script>
 
-<section class="mx-auto max-w-3xl p-4">
-  <h1 class="mb-4 text-2xl font-bold">Admin: Match Scorecard</h1>
-  
-  {#if error}
-    <div class="text-red-600 mb-4">{error}</div>
-  {:else if !match}
-    <div>Loading match data...</div>
-  {:else}
-    <div class="mb-4">
-      <h2 class="text-xl">Match: {match.name || `Match ${match.id}`}</h2>
-      <p class="text-gray-600">Type: {matchType.name}</p>
-      <p class="text-gray-500 text-sm">Course: {course?.name || 'Not specified'}</p>
-    </div>
-    
-    {#if is1v1}
-      <Scorecard1v1
-        players={[teamAPlayers[0], teamBPlayers[0]]}
-        {scores}
-        {holes}
-        isLocked={false}
-        {saveScore}
-        {getSyncStatus}
-        {course}
-      />
-    {:else if is2v2Scramble}
-      <Scorecard2v2Scramble
-        teamAPlayers={teamAPlayers}
-        teamBPlayers={teamBPlayers}
-        scores={scores}
-        holes={holes}
-        isLocked={false}
-        saveScore={saveScore}
-        getSyncStatus={getSyncStatus}
-        course={course}
-      />
-    {:else if is2v2BestBall}
-      <Scorecard2v2BestBall
-        teamAPlayers={teamAPlayers}
-        teamBPlayers={teamBPlayers}
-        scores={scores}
-        holes={holes}
-        isLocked={false}
-        saveScore={saveScore}
-        getSyncStatus={getSyncStatus}
-        course={course}
-      />
-    {:else if is2v2Shamble}
-      <Scorecard2v2Shamble
-        teamAPlayers={teamAPlayers}
-        teamBPlayers={teamBPlayers}
-        scores={scores}
-        holes={holes}
-        isLocked={false}
-        saveScore={saveScore}
-        getSyncStatus={getSyncStatus}
-        course={course}
-      />
-    {:else if is4v4TeamScramble}
-      <Scorecard4v4TeamScramble
-        teamAPlayers={teamAPlayers}
-        teamBPlayers={teamBPlayers}
-        scores={scores}
-        holes={holes}
-        isLocked={false}
-        saveScore={saveScore}
-        getSyncStatus={getSyncStatus}
-        course={course}
-      />
-    {:else}
-      <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-800">
-        <h3 class="font-bold">Match Type Not Implemented</h3>
-        <p>This match type ({matchType?.name || 'Unknown'}) is not yet fully implemented.</p>
+<svelte:head>
+  <title>{match.team_a_name} vs {match.team_b_name} - Rowdy Cup</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+</svelte:head>
+
+<div class="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+  <!-- Admin Controls (if admin) -->
+  {#if authState?.user?.isAdmin}
+    <div class="bg-yellow-100 border-b border-yellow-200 p-3">
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-medium text-yellow-800">Admin Controls</span>
+        <button 
+          on:click={toggleLock}
+          class="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          {isLocked ? 'Unlock Match' : 'Lock Match'}
+        </button>
       </div>
-    {/if}
-    
-    <div class="mt-4">
-      <a href={`/admin/round/${match.round_id}`} class="text-blue-600 hover:underline">
-        &larr; Back to Round
-      </a>
     </div>
   {/if}
-</section>
+  
+  <!-- Enhanced Scorecard -->
+  <EnhancedScorecard
+    {match}
+    {teamAPlayers}
+    {teamBPlayers}
+    {scores}
+    {isLocked}
+    {matchType}
+    on:scoreChange={handleScoreChange}
+  />
+</div>

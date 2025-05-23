@@ -1,261 +1,234 @@
+<!-- src/routes/+layout.svelte -->
 <script lang="ts">
-	import '../app.css';
-	import { onMount } from 'svelte';
-	import { auth } from '$lib/stores/auth';
-	import '../app.postcss';
-	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
-	import { offlineStore } from '$lib/stores/offline-store';
+  import '../app.css';
+  import { onMount } from 'svelte';
+  import { auth } from '$lib/stores/auth';
+  import { page } from '$app/stores';
+  import { goto } from '$app/navigation';
+  import '../app.postcss';
+  import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 
-	let menuOpen = false;
+  let activeTab = 'tournament';
+  let menuOpen = false;
+  let currentTournament = "Rowdy Cup 2025";
+  let currentRound = "Round 2";
+  let userTeam = "The Aviators";
+  let userStats = {
+    status: "2↑",
+    hole: 12,
+    winnings: 250,
+    activeBets: 3
+  };
 
-	function toggleMenu() {
-		menuOpen = !menuOpen;
-	}
+  // Determine active tab based on current route
+  $: {
+    const path = $page.url.pathname;
+    if (path.includes('/matches/')) activeTab = 'scorecard';
+    else if (path.includes('/sportsbook') || path.includes('/my-bets')) activeTab = 'betting';
+    else if (path.includes('/teams')) activeTab = 'teams';
+    else if (path === '/' || path.includes('/rounds/')) activeTab = 'tournament';
+    else activeTab = 'tournament';
+  }
 
-	function closeMenu() {
-		menuOpen = false;
-	}
+  function toggleMenu() {
+    menuOpen = !menuOpen;
+  }
 
-	onMount(() => {
-		auth.checkSession();
-	});
+  function closeMenu() {
+    menuOpen = false;
+  }
 
-	// DEBUG: Log auth state changes
-	$: console.log('LAYOUT: $auth.user =', $auth.user);
+  function navigateToTab(tab: string) {
+    switch(tab) {
+      case 'scorecard':
+        // Navigate to current match or match selection
+        goto('/');
+        break;
+      case 'tournament':
+        goto('/');
+        break;
+      case 'betting':
+        goto('/sportsbook');
+        break;
+      case 'teams':
+        goto('/teams');
+        break;
+    }
+    activeTab = tab;
+  }
+
+  onMount(() => {
+    auth.checkSession();
+  });
+
+  // DEBUG: Log auth state changes
+  $: console.log('LAYOUT: $auth.user =', $auth.user);
 </script>
 
-<div class="min-h-screen bg-slate-50">
-	<!-- Global offline indicator -->
-	<OfflineIndicator />
+<div class="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
+  <!-- Global offline indicator -->
+  <OfflineIndicator />
 
-	<header class="bg-blue-900 text-white shadow">
-		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-			<div class="flex h-16 justify-between">
-				<div class="flex flex-shrink-0 items-center">
-					<a href="/" class="text-xl font-bold text-white">Rowdy Cup</a>
-				</div>
+  <!-- Tournament Header (only show on main pages) -->
+  {#if !$page.url.pathname.includes('/login') && !$page.url.pathname.includes('/admin')}
+    <div class="bg-gradient-to-r from-green-700 via-blue-600 to-purple-700 text-white shadow-lg">
+      <div class="px-4 py-6">
+        <div class="text-center">
+          <h1 class="text-2xl font-bold tracking-wide">{currentTournament}</h1>
+          <div class="flex justify-center items-center mt-2 space-x-4">
+            <span class="bg-white/20 px-3 py-1 rounded-full text-sm">
+              {currentRound}
+            </span>
+            {#if $auth.user}
+              <span class="bg-white/20 px-3 py-1 rounded-full text-sm">
+                Team: {userTeam}
+              </span>
+            {/if}
+          </div>
+        </div>
+      </div>
 
-				<div class="flex items-center gap-2">
-					<button
-						on:click={toggleMenu}
-						class="rounded-md p-2 text-white hover:bg-blue-800 focus:outline-none"
-						aria-label="Menu"
-					>
-						<svg
-							class="h-6 w-6"
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M4 6h16M4 12h16M4 18h16"
-							/>
-						</svg>
-					</button>
-				</div>
-			</div>
-		</div>
-	</header>
-	{#if menuOpen}
-		<div
-			class="bg-opacity-50 fixed inset-0 z-40 bg-black"
-			on:click={closeMenu}
-			on:keydown={(e) => e.key === 'Escape' && closeMenu()}
-			role="button"
-			tabindex="0"
-			aria-label="Close menu"
-		></div>
-		<div
-			class="fixed top-0 right-0 z-50 h-full w-80 transform bg-white shadow-lg transition-transform duration-300"
-		>
-			<div class="bg-gradient-to-r from-blue-900 to-blue-800 p-6">
-				<div class="flex items-center justify-between mb-4">
-					<h2 class="text-xl font-bold text-white">Rowdy Cup</h2>
-					<button 
-            on:click={closeMenu} 
-            class="rounded-md p-2 text-white hover:bg-blue-800/50"
-            aria-label="Close menu"
+      <!-- Quick Stats Bar -->
+      {#if $auth.user && !$auth.user.isAdmin}
+        <div class="bg-black/20 px-4 py-3">
+          <div class="flex justify-between text-center">
+            <div>
+              <div class="text-lg font-bold">{userStats.status}</div>
+              <div class="text-xs opacity-80">Status</div>
+            </div>
+            <div>
+              <div class="text-lg font-bold">{userStats.hole}</div>
+              <div class="text-xs opacity-80">Hole</div>
+            </div>
+            <div>
+              <div class="text-lg font-bold">${userStats.winnings}</div>
+              <div class="text-xs opacity-80">Winnings</div>
+            </div>
+            <div>
+              <div class="text-lg font-bold">{userStats.activeBets}</div>
+              <div class="text-xs opacity-80">Active Bets</div>
+            </div>
+          </div>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
+      <div class="flex">
+        {#each [
+          { id: 'tournament', label: 'Tournament', icon: '🏆' },
+          { id: 'scorecard', label: 'Scorecard', icon: '⛳' },
+          { id: 'betting', label: 'Betting', icon: '💰' },
+          { id: 'teams', label: 'Teams', icon: '👥' }
+        ] as tab}
+          <button
+            on:click={() => navigateToTab(tab.id)}
+            class="flex-1 py-4 px-2 text-center transition-all {
+              activeTab === tab.id
+                ? 'border-b-3 border-green-600 text-green-600 bg-green-50'
+                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+            }"
           >
-						<svg
-							class="h-6 w-6"
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-							stroke="currentColor"
-						>
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M6 18L18 6M6 6l12 12"
-							/>
-						</svg>
-					</button>
-				</div>
-				
-				{#if $auth.user}
-					<div class="flex items-center space-x-3">
-						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-blue-900 font-bold text-xl">
-							{$auth.user.username?.[0]?.toUpperCase() || '?'}
-						</div>
-						<div class="text-white">
-							<p class="font-semibold text-lg">{$auth.user.fullName || $auth.user.username}</p>
-							<p class="text-sm text-blue-100">
-								{$auth.user.isAdmin ? 'Administrator' : 'Player'}
-							</p>
-						</div>
-					</div>
-				{/if}
-			</div>
+            <div class="text-lg mb-1">{tab.icon}</div>
+            <div class="text-xs font-semibold">{tab.label}</div>
+          </button>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
-			<nav class="mt-4 px-4">
-				<ul class="space-y-2">
-					<li>
-						<a 
-							href="/" 
-							class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors" 
-							on:click={closeMenu}
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-								<path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
-							</svg>
-							<span class="font-medium">Tournament Home</span>
-						</a>
-					</li>
+  <!-- Main Content -->
+  <main class="flex-1 overflow-y-auto {$page.url.pathname.includes('/matches/') ? '' : 'pb-20'}">
+    {#if $auth.loading}
+      <div class="flex justify-center items-center min-h-[50vh]">
+        <div class="text-center">
+          <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p class="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    {:else}
+      <slot />
+    {/if}
+  </main>
 
-					<li>
-						<a
-							href="/teams"
-							class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-							on:click={closeMenu}
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-								<path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-1a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v1h-3zM4.75 12.094A5.973 5.973 0 004 15v1H1v-1a3 3 0 013.75-2.906z" />
-							</svg>
-							<span class="font-medium">Team Rosters</span>
-						</a>
-					</li>
+  <!-- Floating Action Menu (only on non-match pages) -->
+  {#if !$page.url.pathname.includes('/matches/') && !$page.url.pathname.includes('/login') && !$page.url.pathname.includes('/admin')}
+    <div class="fixed bottom-6 right-6 z-50">
+      <button 
+        on:click={toggleMenu}
+        class="bg-gradient-to-r from-green-500 to-blue-500 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-2xl hover:scale-110 transition-transform"
+      >
+        {menuOpen ? '✕' : '⚡'}
+      </button>
+      
+      {#if menuOpen}
+        <div class="absolute bottom-20 right-0 bg-white rounded-2xl shadow-2xl p-4 w-48">
+          <div class="space-y-3">
+            {#if $auth.user}
+              <button 
+                on:click={() => { closeMenu(); goto('/my-bets'); }}
+                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                💰 My Bets
+              </button>
+              <button 
+                on:click={() => { closeMenu(); goto('/stats'); }}
+                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                📊 My Stats
+              </button>
+              {#if $auth.user.isAdmin}
+                <button 
+                  on:click={() => { closeMenu(); goto('/admin'); }}
+                  class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  ⚙️ Admin
+                </button>
+              {/if}
+              <button 
+                on:click={() => { closeMenu(); auth.logout(); }}
+                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors text-red-600"
+              >
+                🚪 Logout
+              </button>
+            {:else}
+              <button 
+                on:click={() => { closeMenu(); goto('/login'); }}
+                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                🔑 Login
+              </button>
+            {/if}
+          </div>
+        </div>
+      {/if}
+    </div>
+  {/if}
 
-					<li>
-						<a
-							href="/sportsbook"
-							class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-							on:click={closeMenu}
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-								<path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
-								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
-							</svg>
-							<span class="font-medium">Sportsbook</span>
-						</a>
-					</li>
-
-					{#if $auth.user}
-						<li>
-							<a
-								href="/my-bets"
-								class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-								on:click={closeMenu}
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-									<path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
-								</svg>
-								<span class="font-medium">My Bets</span>
-							</a>
-						</li>
-
-						<li>
-							<a
-								href="/history"
-								class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
-								on:click={closeMenu}
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
-								</svg>
-								<span class="font-medium">History</span>
-							</a>
-						</li>
-
-						{#if $auth.user?.isAdmin}
-							<li class="mt-6 pt-4 border-t border-gray-100">
-								<div class="px-4 mb-2 text-xs font-semibold uppercase text-gray-500">
-									Admin Controls
-								</div>
-								<a
-									href="/admin"
-									class="flex items-center rounded-md px-4 py-3 bg-blue-50 text-blue-800 font-medium hover:bg-blue-100 transition-colors"
-									on:click={closeMenu}
-								>
-									<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-										<path fill-rule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-									</svg>
-									Admin Dashboard
-								</a>
-							</li>
-						{/if}
-
-						<li class="mt-4 pt-4 border-t border-gray-100">
-							<button
-								on:click={() => {
-									closeMenu();
-									auth.logout();
-								}}
-								class="flex w-full items-center rounded-md px-4 py-2 text-red-600 hover:bg-red-50"
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-red-600" viewBox="0 0 20 20" fill="currentColor">
-									<path fill-rule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1V9a1 1 0 00-1-1h-3a1 1 0 010-2h3a3 3 0 013 3v8a3 3 0 01-3 3H3a3 3 0 01-3-3V4a3 3 0 013-3h8a3 3 0 013 3v1a1 1 0 01-2 0V4a1 1 0 00-1-1H3z" clip-rule="evenodd" />
-									<path fill-rule="evenodd" d="M19 10a1 1 0 00-1-1h-8a1 1 0 000 2h7.414l-4.707 4.707a1 1 0 001.414 1.414L19 11.414V10z" clip-rule="evenodd" />
-								</svg>
-								Logout ({$auth.user.username})
-							</button>
-						</li>
-					{:else}
-						<li class="mt-4 pt-4 border-t border-gray-100">
-							<a
-								href="/login"
-								class="flex items-center rounded-md px-4 py-2 text-gray-700 hover:bg-blue-50"
-								on:click={closeMenu}
-							>
-								<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
-									<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clip-rule="evenodd" />
-								</svg>
-								Login
-							</a>
-						</li>
-					{/if}
-				</ul>
-			</nav>
-		</div>
-	{/if}
-
-	<main class="mx-auto max-w-7xl py-6 sm:px-6 lg:px-8">
-		{#if $auth.loading}
-			<div class="flex justify-center p-12">
-				<div
-					class="spinner h-12 w-12 animate-spin rounded-full border-t-4 border-solid border-blue-500"
-				></div>
-			</div>
-		{:else}
-			<slot />
-		{/if}
-	</main>
+  <!-- Overlay for menu -->
+  {#if menuOpen}
+    <div
+      class="fixed inset-0 bg-black/20 z-40"
+      on:click={closeMenu}
+      on:keydown={(e) => e.key === 'Escape' && closeMenu()}
+      role="button"
+      tabindex="0"
+    ></div>
+  {/if}
 </div>
 
 <style>
-	@keyframes spin {
-		0% {
-			transform: rotate(0deg);
-		}
-		100% {
-			transform: rotate(360deg);
-		}
-	}
-	.spinner {
-		animation: spin 1s linear infinite;
-	}
+  .border-b-3 {
+    border-bottom-width: 3px;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .animate-spin {
+    animation: spin 1s linear infinite;
+  }
 </style>
