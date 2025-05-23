@@ -44,56 +44,48 @@
 </script>
 
 <section class="container mx-auto px-4 py-8">
-	<div class="mb-8">
-		{#if tournament}
-			<div class="text-center mb-6">
-				<h1 class="heading-lg mb-2">{tournament.name}</h1>
-				<div class="text-blue-600">
-					<span>Dates: {tournament.start_date || 'TBD'} - {tournament.end_date || 'TBD'}</span>
-				</div>
+	{#if tournament}
+		<div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+			<div class="lg:col-span-2">
+				<Card>
+					<div class="text-center mb-6">
+						<h1 class="heading-lg mb-2">{tournament.name}</h1>
+						<div class="text-blue-600">
+							<span>Dates: {tournament.start_date || 'TBD'} - {tournament.end_date || 'TBD'}</span>
+						</div>
+					</div>
+					
+					{#if isAdmin}
+						<div class="flex justify-center gap-4 mb-6">
+							<Button variant="secondary" on:click={() => (showEditTournament = true)}>
+								Edit Tournament
+							</Button>
+							<Button variant="primary" on:click={() => (showAddRound = true)}>
+								Add Round
+							</Button>
+						</div>
+					{/if}
+				</Card>
 			</div>
 			
-			{#if isAdmin}
-				<div class="flex justify-center items-center gap-4 mb-8">
-					<Button variant="outline" on:click={() => showEditTournament = true}>
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-						</svg>
-						Edit Tournament
-					</Button>
-					<Button on:click={() => showAddRound = true}>
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-						</svg>
-						Add New Round
-					</Button>
-				</div>
-			{/if}
-						<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-						</svg>
-						Add New Round
-					</Button>
-				</div>
-			{/if}
-			
-			<!-- Tournament Stats Dashboard -->
-			<div class="mb-8">
+			<div>
 				<TournamentStats stats={tournamentStats} />
 			</div>
-			
-		{:else}
-			<Card class="p-8 text-center">
-				<h2 class="heading-md mb-4">No Tournament Active</h2>
-				<p class="text-gray-600 mb-6">There is no active tournament at this time.</p>
+		</div>
+	{:else}
+		<Card class="mb-8">
+			<div class="text-center p-8">
+				<h1 class="heading-lg mb-4">Welcome to Rowdy Cup</h1>
+				<p class="text-gray-600 mb-6">No active tournament. Please create one to get started.</p>
+				
 				{#if isAdmin}
-					<div class="flex justify-center">
-						<Button>Create Tournament</Button>
-					</div>
+					<Button variant="primary" on:click={() => (showEditTournament = true)}>
+						Create Tournament
+					</Button>
 				{/if}
-			</Card>
-		{/if}
-	</div>
+			</div>
+		</Card>
+	{/if}
 
 	{#if tournament && rounds.length > 0}
 		<div class="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
@@ -102,7 +94,10 @@
 					<div class="mb-4 flex justify-between items-center">
 						<div>
 							<h2 class="heading-md">{round.name}</h2>
-							<Badge variant="primary" class="mt-1">Round {round.sequence || ''}</Badge>
+							<div class="flex items-center gap-2 mt-1">
+								<Badge variant="primary">Round {round.sequence || ''}</Badge>
+								<span class="text-gray-600 text-sm">{round.date || 'Date TBD'}</span>
+							</div>
 						</div>
 						<Button 
 							variant="outline" 
@@ -163,29 +158,28 @@
 				<div class="space-y-4 mb-6">
 					<div>
 						<label for="tournamentName" class="block text-sm font-medium text-gray-700 mb-1">Tournament Name</label>
-						<input 
-							type="text" 
+						<Input 
 							id="tournamentName" 
-							class="input w-full"
+							class="w-full"
 							value={tournament?.name || ''}
 						/>
 					</div>
 					<div class="grid grid-cols-2 gap-4">
 						<div>
 							<label for="startDate" class="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-							<input 
+							<Input 
 								type="date" 
 								id="startDate" 
-								class="input w-full"
+								class="w-full"
 								value={tournament?.start_date || ''}
 							/>
 						</div>
 						<div>
 							<label for="endDate" class="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-							<input 
+							<Input 
 								type="date" 
 								id="endDate" 
-								class="input w-full"
+								class="w-full"
 								value={tournament?.end_date || ''}
 							/>
 						</div>
@@ -196,7 +190,7 @@
 					<Button variant="outline" on:click={() => showEditTournament = false}>
 						Cancel
 					</Button>
-					<Button>
+					<Button variant="primary">
 						Save Changes
 					</Button>
 				</div>
@@ -225,27 +219,23 @@
 				<div class="space-y-4 mb-6">
 					<div>
 						<label for="roundName" class="block text-sm font-medium text-gray-700 mb-1">Round Name</label>
-						<input 
-							type="text" 
+						<Input 
 							id="roundName" 
-							class="input w-full"
 							placeholder="e.g. Round 1"
 						/>
 					</div>
 					<div>
 						<label for="roundDate" class="block text-sm font-medium text-gray-700 mb-1">Round Date</label>
-						<input 
+						<Input 
 							type="date" 
 							id="roundDate" 
-							class="input w-full"
 						/>
 					</div>
 					<div>
 						<label for="roundSequence" class="block text-sm font-medium text-gray-700 mb-1">Sequence Number</label>
-						<input 
+						<Input 
 							type="number" 
 							id="roundSequence" 
-							class="input w-full"
 							min="1"
 							placeholder="e.g. 1"
 						/>
@@ -256,7 +246,7 @@
 					<Button variant="outline" on:click={() => showAddRound = false}>
 						Cancel
 					</Button>
-					<Button>
+					<Button variant="primary">
 						Add Round
 					</Button>
 				</div>

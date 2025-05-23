@@ -60,7 +60,6 @@
 			</div>
 		</div>
 	</header>
-
 	{#if menuOpen}
 		<div
 			class="bg-opacity-50 fixed inset-0 z-40 bg-black"
@@ -71,14 +70,14 @@
 			aria-label="Close menu"
 		></div>
 		<div
-			class="fixed top-0 right-0 z-50 h-full w-64 transform bg-white shadow-lg transition-transform duration-300"
+			class="fixed top-0 right-0 z-50 h-full w-80 transform bg-white shadow-lg transition-transform duration-300"
 		>
-			<div class="bg-blue-900 p-4">
-				<div class="flex items-center justify-between">
-					<h2 class="text-lg font-semibold text-white">Menu</h2>
+			<div class="bg-gradient-to-r from-blue-900 to-blue-800 p-6">
+				<div class="flex items-center justify-between mb-4">
+					<h2 class="text-xl font-bold text-white">Rowdy Cup</h2>
 					<button 
             on:click={closeMenu} 
-            class="rounded-md p-2 text-white hover:bg-blue-800"
+            class="rounded-md p-2 text-white hover:bg-blue-800/50"
             aria-label="Close menu"
           >
 						<svg
@@ -97,17 +96,15 @@
 						</svg>
 					</button>
 				</div>
-			</div>
-			
-			<div class="px-4 py-3">
+				
 				{#if $auth.user}
-					<div class="mb-2 flex items-center space-x-2">
-						<div class="flex h-10 w-10 items-center justify-center rounded-full bg-blue-800 text-white">
+					<div class="flex items-center space-x-3">
+						<div class="flex h-12 w-12 items-center justify-center rounded-full bg-white text-blue-900 font-bold text-xl">
 							{$auth.user.username?.[0]?.toUpperCase() || '?'}
 						</div>
-						<div>
-							<p class="font-medium">{$auth.user.fullName || $auth.user.username}</p>
-							<p class="text-xs text-gray-500">
+						<div class="text-white">
+							<p class="font-semibold text-lg">{$auth.user.fullName || $auth.user.username}</p>
+							<p class="text-sm text-blue-100">
 								{$auth.user.isAdmin ? 'Administrator' : 'Player'}
 							</p>
 						</div>
@@ -115,45 +112,45 @@
 				{/if}
 			</div>
 
-			<nav class="mt-2">
-				<ul class="space-y-1 px-2">
+			<nav class="mt-4 px-4">
+				<ul class="space-y-2">
 					<li>
 						<a 
 							href="/" 
-							class="flex items-center rounded-md px-4 py-2 text-gray-700 hover:bg-blue-50" 
+							class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors" 
 							on:click={closeMenu}
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
 								<path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
 							</svg>
-							Tournament Home
+							<span class="font-medium">Tournament Home</span>
 						</a>
 					</li>
 
 					<li>
 						<a
 							href="/teams"
-							class="flex items-center rounded-md px-4 py-2 text-gray-700 hover:bg-blue-50"
+							class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
 							on:click={closeMenu}
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
 								<path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v1h8v-1zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-1a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v1h-3zM4.75 12.094A5.973 5.973 0 004 15v1H1v-1a3 3 0 013.75-2.906z" />
 							</svg>
-							Team Rosters
+							<span class="font-medium">Team Rosters</span>
 						</a>
 					</li>
 
 					<li>
 						<a
 							href="/sportsbook"
-							class="flex items-center rounded-md px-4 py-2 text-gray-700 hover:bg-blue-50"
+							class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
 							on:click={closeMenu}
 						>
 							<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
 								<path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z" />
 								<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd" />
 							</svg>
-							Sportsbook
+							<span class="font-medium">Sportsbook</span>
 						</a>
 					</li>
 
@@ -161,37 +158,37 @@
 						<li>
 							<a
 								href="/my-bets"
-								class="flex items-center rounded-md px-4 py-2 text-gray-700 hover:bg-blue-50"
+								class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
 								on:click={closeMenu}
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
 									<path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 00.994-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
 								</svg>
-								My Bets
+								<span class="font-medium">My Bets</span>
 							</a>
 						</li>
 
 						<li>
 							<a
 								href="/history"
-								class="flex items-center rounded-md px-4 py-2 text-gray-700 hover:bg-blue-50"
+								class="flex items-center rounded-md px-4 py-3 text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors"
 								on:click={closeMenu}
 							>
 								<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
 									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd" />
 								</svg>
-								History
+								<span class="font-medium">History</span>
 							</a>
 						</li>
 
 						{#if $auth.user?.isAdmin}
-							<li class="mt-4 pt-4 border-t border-gray-100">
+							<li class="mt-6 pt-4 border-t border-gray-100">
 								<div class="px-4 mb-2 text-xs font-semibold uppercase text-gray-500">
-									Admin
+									Admin Controls
 								</div>
 								<a
 									href="/admin"
-									class="flex items-center rounded-md px-4 py-2 text-blue-800 font-medium hover:bg-blue-50"
+									class="flex items-center rounded-md px-4 py-3 bg-blue-50 text-blue-800 font-medium hover:bg-blue-100 transition-colors"
 									on:click={closeMenu}
 								>
 									<svg xmlns="http://www.w3.org/2000/svg" class="mr-3 h-5 w-5 text-blue-800" viewBox="0 0 20 20" fill="currentColor">
