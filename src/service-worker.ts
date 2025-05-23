@@ -23,34 +23,48 @@ const STATIC_ASSETS = [
 
 // Install event - cache initial assets
 sw.addEventListener('install', (event) => {
+	console.log('Service worker installing...');
 	event.waitUntil(
 		(async () => {
-			const staticCache = await caches.open(CACHE_NAMES.static);
-			await staticCache.addAll(STATIC_ASSETS);
-
-			// Skip waiting to activate the new service worker immediately
-			await sw.skipWaiting();
+			try {
+				const staticCache = await caches.open(CACHE_NAMES.static);
+				console.log('Caching static assets:', STATIC_ASSETS.length, 'files');
+				await staticCache.addAll(STATIC_ASSETS);
+				console.log('Static assets cached successfully');
+				
+				// Skip waiting to activate the new service worker immediately
+				await sw.skipWaiting();
+			} catch (error) {
+				console.error('Service worker install failed:', error);
+			}
 		})()
 	);
 });
 
 // Activate event - clean up old caches
 sw.addEventListener('activate', (event) => {
+	console.log('Service worker activating...');
 	event.waitUntil(
 		(async () => {
-			// Get all cache names
-			const cacheNames = await caches.keys();
+			try {
+				// Get all cache names
+				const cacheNames = await caches.keys();
 
-			// Filter for old caches
-			const oldCacheNames = cacheNames.filter((name) => {
-				return Object.values(CACHE_NAMES).indexOf(name) === -1;
-			});
+				// Filter for old caches
+				const oldCacheNames = cacheNames.filter((name) => {
+					return Object.values(CACHE_NAMES).indexOf(name) === -1;
+				});
 
-			// Delete old caches
-			await Promise.all(oldCacheNames.map((name) => caches.delete(name)));
+				// Delete old caches
+				await Promise.all(oldCacheNames.map((name) => caches.delete(name)));
+				console.log('Old caches cleaned up');
 
-			// Take control of all clients
-			await sw.clients.claim();
+				// Take control of all clients
+				await sw.clients.claim();
+				console.log('Service worker activated successfully');
+			} catch (error) {
+				console.error('Service worker activation failed:', error);
+			}
 		})()
 	);
 });
@@ -58,7 +72,7 @@ sw.addEventListener('activate', (event) => {
 // Helper function to determine if a request is an API call
 function isApiRequest(request: Request): boolean {
 	const url = new URL(request.url);
-	return url.pathname.startsWith('/api/');
+	return url.pathname.startsWith('/api/') || url.hostname.includes('supabase');
 }
 
 // Helper function to determine if a navigation request
@@ -69,7 +83,7 @@ function isNavigationRequest(request: Request): boolean {
 // Helper function to determine if an asset request
 function isAssetRequest(request: Request): boolean {
 	const url = new URL(request.url);
-	return STATIC_ASSETS.includes(url.pathname);
+	return STATIC_ASSETS.some(asset => url.pathname === asset);
 }
 
 // Helper function for image requests
@@ -84,93 +98,118 @@ sw.addEventListener('fetch', (event) => {
 	// Skip non-GET requests
 	if (request.method !== 'GET') return;
 
+	// Skip requests to other origins (except for allowed CDNs)
+	const url = new URL(request.url);
+	if (url.origin !== self.location.origin && !url.hostname.includes('supabase')) {
+		return;
+	}
+
 	event.respondWith(
 		(async () => {
-			// Static assets - Cache First strategy
-			if (isAssetRequest(request)) {
-				const cachedResponse = await caches.match(request);
-				if (cachedResponse) {
-					return cachedResponse;
-				}
-
-				// If not in cache, fetch from network and cache
-				const response = await fetch(request);
-				if (response.ok) {
-					const cache = await caches.open(CACHE_NAMES.static);
-					cache.put(request, response.clone());
-				}
-				return response;
-			}
-
-			// Navigation requests - Network First with fallback
-			if (isNavigationRequest(request)) {
-				try {
-					// Try network first
-					const response = await fetch(request);
-
-					// Cache successful responses
-					if (response.ok) {
-						const cache = await caches.open(CACHE_NAMES.pages);
-						cache.put(request, response.clone());
-					}
-
-					return response;
-				} catch (error) {
-					// If network fails, try cache
+			try {
+				// Static assets - Cache First strategy
+				if (isAssetRequest(request)) {
 					const cachedResponse = await caches.match(request);
 					if (cachedResponse) {
 						return cachedResponse;
 					}
 
-					// If no cached version, return the offline fallback page
-					return caches.match('/offline');
-				}
-			}
-
-			// API requests - Network First but don't cache posts
-			if (isApiRequest(request)) {
-				try {
-					// Try network first
-					const response = await fetch(request);
-					return response;
-				} catch (error) {
-					// Offline fallback - let the app handle offline state
-					// (using IndexedDB for offline data)
-					return new Response(
-						JSON.stringify({
-							error: 'offline',
-							message: 'You are currently offline. Data will be synced when reconnected.'
-						}),
-						{
-							status: 503,
-							headers: { 'Content-Type': 'application/json' }
-						}
-					);
-				}
-			}
-
-			// Images - Cache First with network fallback
-			if (isImageRequest(request)) {
-				const cachedResponse = await caches.match(request);
-				if (cachedResponse) {
-					return cachedResponse;
-				}
-
-				try {
+					// If not in cache, fetch from network and cache
 					const response = await fetch(request);
 					if (response.ok) {
-						const cache = await caches.open(CACHE_NAMES.images);
+						const cache = await caches.open(CACHE_NAMES.static);
 						cache.put(request, response.clone());
 					}
 					return response;
-				} catch (error) {
-					// Return a placeholder image or just fail
-					return new Response('Image not available offline', { status: 503 });
 				}
-			}
 
-			// Default - try network, don't cache
-			return fetch(request);
+				// Navigation requests - Network First with fallback
+				if (isNavigationRequest(request)) {
+					try {
+						// Try network first
+						const response = await fetch(request);
+
+						// Cache successful responses
+						if (response.ok) {
+							const cache = await caches.open(CACHE_NAMES.pages);
+							cache.put(request, response.clone());
+						}
+
+						return response;
+					} catch (error) {
+						// If network fails, try cache
+						const cachedResponse = await caches.match(request);
+						if (cachedResponse) {
+							return cachedResponse;
+						}
+
+						// If no cached version, return the offline fallback page
+						const offlineResponse = await caches.match('/offline');
+						if (offlineResponse) {
+							return offlineResponse;
+						}
+
+						// Final fallback
+						return new Response('You are offline', { 
+							status: 503,
+							headers: { 'Content-Type': 'text/plain' }
+						});
+					}
+				}
+
+				// API requests - Network Only (let app handle offline state)
+				if (isApiRequest(request)) {
+					try {
+						return await fetch(request);
+					} catch (error) {
+						// Return a proper offline response
+						return new Response(
+							JSON.stringify({
+								error: 'offline',
+								message: 'You are currently offline. Data will be synced when reconnected.'
+							}),
+							{
+								status: 503,
+								headers: { 'Content-Type': 'application/json' }
+							}
+						);
+					}
+				}
+
+				// Images - Cache First with network fallback
+				if (isImageRequest(request)) {
+					const cachedResponse = await caches.match(request);
+					if (cachedResponse) {
+						return cachedResponse;
+					}
+
+					try {
+						const response = await fetch(request);
+						if (response.ok) {
+							const cache = await caches.open(CACHE_NAMES.images);
+							cache.put(request, response.clone());
+						}
+						return response;
+					} catch (error) {
+						// Return a placeholder or just fail gracefully
+						return new Response('Image not available offline', { status: 503 });
+					}
+				}
+
+				// Default - try network, don't cache
+				return await fetch(request);
+
+			} catch (error) {
+				console.error('Fetch event error:', error);
+				return new Response('Service unavailable', { status: 503 });
+			}
 		})()
 	);
+});
+
+// Handle service worker messages
+sw.addEventListener('message', (event) => {
+	if (event.data && event.data.type === 'SKIP_WAITING') {
+		sw.skipWaiting();
+	}
 });
