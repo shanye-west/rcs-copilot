@@ -74,28 +74,43 @@
 </script>
 
 <div class="mb-4">
-	<h2 class="text-lg font-bold text-center mb-2">1v1 Individual Match Scorecard</h2>
-	<div class="mb-2 text-center text-gray-600 text-lg font-semibold tracking-wide">
-		Status: <span class="inline-block px-2 py-1 rounded bg-gray-100 text-blue-700">{getMatchStatus()}</span>
+	<h2 class="mb-2 text-center text-lg font-bold">1v1 Individual Match Scorecard</h2>
+	<div class="mb-2 text-center text-lg font-semibold tracking-wide text-gray-600">
+		Status: <span class="inline-block rounded bg-gray-100 px-2 py-1 text-blue-700"
+			>{getMatchStatus()}</span
+		>
 	</div>
 	<div class="overflow-x-auto">
-		<table class="min-w-full border text-base rounded-lg shadow bg-white">
+		<table class="min-w-full rounded-lg border bg-white text-base shadow">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
-					<th class="border px-2 py-1 text-center text-blue-700 font-bold bg-blue-50">{players[0].player.username}</th>
-					<th class="border px-2 py-1 text-center text-green-700 font-bold bg-green-50">{players[1].player.username}</th>
+					<th class="sticky left-0 z-10 border bg-gray-100 px-2 py-1 text-center text-xs font-bold"
+						>Hole</th
+					>
+					<th class="border bg-blue-50 px-2 py-1 text-center font-bold text-blue-700"
+						>{players[0].player.username}</th
+					>
+					<th class="border bg-green-50 px-2 py-1 text-center font-bold text-green-700"
+						>{players[1].player.username}</th
+					>
 				</tr>
 				<tr>
-					<th class="border px-2 py-1 text-xs text-gray-400 bg-gray-100 sticky left-0 z-10">Dots</th>
-					<th class="border px-2 py-1 text-xs text-blue-500 bg-blue-50">{holes.map((h) => getDots(players[0].player, h)).join(' ')}</th>
-					<th class="border px-2 py-1 text-xs text-green-600 bg-green-50">{holes.map((h) => getDots(players[1].player, h)).join(' ')}</th>
+					<th class="sticky left-0 z-10 border bg-gray-100 px-2 py-1 text-xs text-gray-400">Dots</th
+					>
+					<th class="border bg-blue-50 px-2 py-1 text-xs text-blue-500"
+						>{holes.map((h) => getDots(players[0].player, h)).join(' ')}</th
+					>
+					<th class="border bg-green-50 px-2 py-1 text-xs text-green-600"
+						>{holes.map((h) => getDots(players[1].player, h)).join(' ')}</th
+					>
 				</tr>
 			</thead>
 			<tbody>
 				{#each holes as hole (hole)}
 					<tr>
-						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
+						<td class="sticky left-0 z-10 border bg-gray-50 px-2 py-1 text-center font-bold"
+							>{hole}</td
+						>
 						{#each players as p (p.player.id)}
 							<td class="border px-2 py-1 text-center">
 								{#if !isLocked}
@@ -103,13 +118,18 @@
 										type="number"
 										min="1"
 										max="20"
-										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none shadow-inner"
+										class="h-10 w-16 rounded border bg-blue-50 p-1 text-center text-lg font-semibold shadow-inner focus:bg-blue-100 focus:outline-none"
 										value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
-										on:input={e => {
+										on:input={(e) => {
 											const val = e.target.value;
 											if (p.scores) p.scores[hole] = val;
 										}}
-										on:change={() => saveScore(p.player.id, hole, p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null)}
+										on:change={() =>
+											saveScore(
+												p.player.id,
+												hole,
+												p.scores && p.scores[hole] !== '' ? Number(p.scores[hole]) : null
+											)}
 									/>
 									<!-- Sync status indicator -->
 									{#if typeof getSyncStatus === 'function'}
@@ -124,7 +144,7 @@
 								{:else}
 									{getScore(p.player.id, hole)}
 								{/if}
-								<div class="text-xs text-gray-400 mt-1">{getDots(p.player, hole)}</div>
+								<div class="mt-1 text-xs text-gray-400">{getDots(p.player, hole)}</div>
 							</td>
 						{/each}
 					</tr>

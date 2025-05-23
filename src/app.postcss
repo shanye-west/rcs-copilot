@@ -6,200 +6,200 @@
 
 /* Rowdy Cup Brand Colors (matching screenshots) */
 :root {
-  --rowdy-navy: #1e3a8a;        /* Aviators navy blue */
-  --rowdy-red: #dc2626;         /* Producers red */
-  --rowdy-blue: #3b82f6;        /* Accent blue */
-  --rowdy-gray: #6b7280;        /* Text gray */
-  --rowdy-light-gray: #f9fafb;  /* Background gray */
+	--rowdy-navy: #1e3a8a; /* Aviators navy blue */
+	--rowdy-red: #dc2626; /* Producers red */
+	--rowdy-blue: #3b82f6; /* Accent blue */
+	--rowdy-gray: #6b7280; /* Text gray */
+	--rowdy-light-gray: #f9fafb; /* Background gray */
 }
 
 /* Base styles matching screenshots */
 @layer base {
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: #f9fafb;
-    color: #374151;
-  }
+	body {
+		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+		background-color: #f9fafb;
+		color: #374151;
+	}
 }
 
 /* Component styles matching the clean design */
 @layer components {
-  /* Card styling matching screenshots */
-  .rowdy-card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200;
-  }
-  
-  /* Team logo circles matching screenshots */
-  .team-logo-aviators {
-    @apply w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold text-xs;
-  }
-  
-  .team-logo-producers {
-    @apply w-16 h-16 bg-red-700 rounded-full flex items-center justify-center text-white font-bold text-xs;
-  }
-  
-  /* Navigation styling matching top nav */
-  .nav-link-active {
-    @apply bg-blue-100 text-blue-700 border border-blue-300 rounded-lg px-4 py-2 font-medium;
-  }
-  
-  .nav-link {
-    @apply text-gray-600 hover:text-gray-900 px-4 py-2 font-medium rounded-lg transition-colors;
-  }
-  
-  /* Button styling matching screenshots */
-  .btn-primary {
-    @apply bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors;
-  }
-  
-  .btn-secondary {
-    @apply border border-gray-300 text-gray-700 bg-white px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors;
-  }
-  
-  /* Status badge styling */
-  .status-upcoming {
-    @apply bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium;
-  }
-  
-  .status-in-progress {
-    @apply bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium;
-  }
-  
-  .status-completed {
-    @apply bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium;
-  }
-  
-  /* Header styling matching dark headers in screenshots */
-  .section-header {
-    @apply bg-gray-800 text-white rounded-lg p-6;
-  }
-  
-  /* Table styling matching scorecard */
-  .scorecard-table {
-    @apply min-w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden;
-  }
-  
-  .scorecard-header {
-    @apply px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50 border-b border-gray-200;
-  }
-  
-  .scorecard-cell {
-    @apply px-4 py-3 text-center text-sm border-b border-gray-100;
-  }
-  
-  /* Team row styling */
-  .team-row-aviators {
-    @apply bg-blue-50 border-b border-gray-100;
-  }
-  
-  .team-row-producers {
-    @apply bg-red-50 border-b border-gray-100;
-  }
-  
-  .team-name-aviators {
-    @apply px-4 py-3 text-sm font-bold text-white bg-blue-900;
-  }
-  
-  .team-name-producers {
-    @apply px-4 py-3 text-sm font-bold text-white bg-red-700;
-  }
-  
-  /* Score input styling */
-  .score-input {
-    @apply w-12 h-8 text-center border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
-  }
-  
-  /* Bottom navigation styling */
-  .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg;
-  }
-  
-  .bottom-nav-item {
-    @apply flex-1 py-3 px-2 text-center transition-colors;
-  }
-  
-  .bottom-nav-item-active {
-    @apply text-blue-600;
-  }
-  
-  .bottom-nav-item-inactive {
-    @apply text-gray-400;
-  }
-  
-  /* Back link styling */
-  .back-link {
-    @apply flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors;
-  }
-  
-  /* Modal styling */
-  .modal-overlay {
-    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
-  }
-  
-  .modal-content {
-    @apply bg-white rounded-lg shadow-xl max-w-md w-full p-6;
-  }
-  
-  /* Form styling */
-  .form-input {
-    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
-  }
-  
-  .form-label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
-  }
-  
-  /* Team indicator dots */
-  .team-dot-aviators {
-    @apply w-3 h-3 bg-blue-900 rounded-full;
-  }
-  
-  .team-dot-producers {
-    @apply w-3 h-3 bg-red-700 rounded-full;
-  }
-  
-  /* Match container styling */
-  .match-container {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden;
-  }
-  
-  .match-header {
-    @apply px-6 py-4 border-b border-gray-200;
-  }
-  
-  .match-content {
-    @apply p-6;
-  }
-  
-  /* Admin controls styling */
-  .admin-controls {
-    @apply bg-yellow-50 border border-yellow-200 rounded-lg p-4;
-  }
-  
-  .admin-button {
-    @apply px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm;
-  }
+	/* Card styling matching screenshots */
+	.rowdy-card {
+		@apply rounded-lg border border-gray-200 bg-white shadow-sm;
+	}
+
+	/* Team logo circles matching screenshots */
+	.team-logo-aviators {
+		@apply flex h-16 w-16 items-center justify-center rounded-full bg-blue-900 text-xs font-bold text-white;
+	}
+
+	.team-logo-producers {
+		@apply flex h-16 w-16 items-center justify-center rounded-full bg-red-700 text-xs font-bold text-white;
+	}
+
+	/* Navigation styling matching top nav */
+	.nav-link-active {
+		@apply rounded-lg border border-blue-300 bg-blue-100 px-4 py-2 font-medium text-blue-700;
+	}
+
+	.nav-link {
+		@apply rounded-lg px-4 py-2 font-medium text-gray-600 transition-colors hover:text-gray-900;
+	}
+
+	/* Button styling matching screenshots */
+	.btn-primary {
+		@apply rounded-lg bg-blue-600 px-4 py-2 font-medium text-white transition-colors hover:bg-blue-700;
+	}
+
+	.btn-secondary {
+		@apply rounded-lg border border-gray-300 bg-white px-4 py-2 font-medium text-gray-700 transition-colors hover:bg-gray-50;
+	}
+
+	/* Status badge styling */
+	.status-upcoming {
+		@apply rounded-full bg-gray-100 px-3 py-1 text-sm font-medium text-gray-700;
+	}
+
+	.status-in-progress {
+		@apply rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800;
+	}
+
+	.status-completed {
+		@apply rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800;
+	}
+
+	/* Header styling matching dark headers in screenshots */
+	.section-header {
+		@apply rounded-lg bg-gray-800 p-6 text-white;
+	}
+
+	/* Table styling matching scorecard */
+	.scorecard-table {
+		@apply min-w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm;
+	}
+
+	.scorecard-header {
+		@apply border-b border-gray-200 bg-gray-50 px-4 py-3 text-left text-sm font-medium text-gray-700;
+	}
+
+	.scorecard-cell {
+		@apply border-b border-gray-100 px-4 py-3 text-center text-sm;
+	}
+
+	/* Team row styling */
+	.team-row-aviators {
+		@apply border-b border-gray-100 bg-blue-50;
+	}
+
+	.team-row-producers {
+		@apply border-b border-gray-100 bg-red-50;
+	}
+
+	.team-name-aviators {
+		@apply bg-blue-900 px-4 py-3 text-sm font-bold text-white;
+	}
+
+	.team-name-producers {
+		@apply bg-red-700 px-4 py-3 text-sm font-bold text-white;
+	}
+
+	/* Score input styling */
+	.score-input {
+		@apply h-8 w-12 rounded border border-gray-300 text-center text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
+	}
+
+	/* Bottom navigation styling */
+	.bottom-nav {
+		@apply fixed right-0 bottom-0 left-0 border-t border-gray-200 bg-white shadow-lg;
+	}
+
+	.bottom-nav-item {
+		@apply flex-1 px-2 py-3 text-center transition-colors;
+	}
+
+	.bottom-nav-item-active {
+		@apply text-blue-600;
+	}
+
+	.bottom-nav-item-inactive {
+		@apply text-gray-400;
+	}
+
+	/* Back link styling */
+	.back-link {
+		@apply flex items-center font-medium text-blue-600 transition-colors hover:text-blue-700;
+	}
+
+	/* Modal styling */
+	.modal-overlay {
+		@apply bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4;
+	}
+
+	.modal-content {
+		@apply w-full max-w-md rounded-lg bg-white p-6 shadow-xl;
+	}
+
+	/* Form styling */
+	.form-input {
+		@apply w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-500;
+	}
+
+	.form-label {
+		@apply mb-1 block text-sm font-medium text-gray-700;
+	}
+
+	/* Team indicator dots */
+	.team-dot-aviators {
+		@apply h-3 w-3 rounded-full bg-blue-900;
+	}
+
+	.team-dot-producers {
+		@apply h-3 w-3 rounded-full bg-red-700;
+	}
+
+	/* Match container styling */
+	.match-container {
+		@apply overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm;
+	}
+
+	.match-header {
+		@apply border-b border-gray-200 px-6 py-4;
+	}
+
+	.match-content {
+		@apply p-6;
+	}
+
+	/* Admin controls styling */
+	.admin-controls {
+		@apply rounded-lg border border-yellow-200 bg-yellow-50 p-4;
+	}
+
+	.admin-button {
+		@apply rounded-lg bg-yellow-600 px-4 py-2 text-sm text-white transition-colors hover:bg-yellow-700;
+	}
 }
 
 /* Responsive adjustments for mobile */
 @media (max-width: 640px) {
-  .team-logo-aviators,
-  .team-logo-producers {
-    @apply w-12 h-12 text-xs;
-  }
-  
-  .scorecard-cell {
-    @apply px-2 py-2;
-  }
-  
-  .score-input {
-    @apply w-10 h-7 text-xs;
-  }
+	.team-logo-aviators,
+	.team-logo-producers {
+		@apply h-12 w-12 text-xs;
+	}
+
+	.scorecard-cell {
+		@apply px-2 py-2;
+	}
+
+	.score-input {
+		@apply h-7 w-10 text-xs;
+	}
 }
 
 /* Accessibility improvements */
 @media (prefers-reduced-motion: reduce) {
-  .transition-colors {
-    transition: none;
-  }
+	.transition-colors {
+		transition: none;
+	}
 }

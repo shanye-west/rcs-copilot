@@ -30,7 +30,9 @@
 	export let holes: number[] = [];
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: ((playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined) | undefined;
+	export let getSyncStatus:
+		| ((playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined)
+		| undefined;
 
 	// Defensive: make sure arrays are never undefined
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -79,17 +81,17 @@
 
 	// Helper to determine which team is winning on a hole
 	function getWinningTeam(hole: number): string | null {
-		const teamAScores = safeTeamAPlayers.map(p => getPlayerScore(p, hole));
-		const teamBScores = safeTeamBPlayers.map(p => getPlayerScore(p, hole));
+		const teamAScores = safeTeamAPlayers.map((p) => getPlayerScore(p, hole));
+		const teamBScores = safeTeamBPlayers.map((p) => getPlayerScore(p, hole));
 
 		// Need all scores to determine a winner
-		if (teamAScores.some(score => !score) || teamBScores.some(score => !score)) {
+		if (teamAScores.some((score) => !score) || teamBScores.some((score) => !score)) {
 			return null;
 		}
 
 		// Convert to numbers and find the best (lowest) score for each team
-		const teamABest = Math.min(...teamAScores.map(s => Number(s)).filter(n => !isNaN(n)));
-		const teamBBest = Math.min(...teamBScores.map(s => Number(s)).filter(n => !isNaN(n)));
+		const teamABest = Math.min(...teamAScores.map((s) => Number(s)).filter((n) => !isNaN(n)));
+		const teamBBest = Math.min(...teamBScores.map((s) => Number(s)).filter((n) => !isNaN(n)));
 
 		if (isNaN(teamABest) || isNaN(teamBBest)) return null;
 		if (teamABest < teamBBest) return 'A';
@@ -101,35 +103,36 @@
 	function getMatchStatus(): string {
 		let teamAUp = 0;
 		let teamBUp = 0;
-		
+
 		for (let hole of safeHoles) {
 			const winner = getWinningTeam(hole);
 			if (winner === 'A') teamAUp++;
 			else if (winner === 'B') teamBUp++;
 		}
-		
+
 		if (teamAUp === teamBUp) return 'AS';
 		if (teamAUp > teamBUp) return `${teamAUp - teamBUp}↑`;
 		return `${teamBUp - teamAUp}↓`;
 	}
-	
+
 	// Calculate team total scores
 	function getTeamTotal(teamPlayers: Player[]): number {
 		let total = 0;
-		
+
 		// For each hole, find the best (lowest) score from either player
 		for (let hole of safeHoles) {
-			const scores = teamPlayers.map(p => getPlayerScore(p, hole))
-				.filter(score => score !== '')
-				.map(score => Number(score))
-				.filter(score => !isNaN(score));
-				
+			const scores = teamPlayers
+				.map((p) => getPlayerScore(p, hole))
+				.filter((score) => score !== '')
+				.map((score) => Number(score))
+				.filter((score) => !isNaN(score));
+
 			if (scores.length > 0) {
 				const bestScore = Math.min(...scores);
 				total += bestScore;
 			}
 		}
-		
+
 		return total;
 	}
 
@@ -138,12 +141,12 @@
 		if (isLocked) return;
 
 		const value = (e.target as HTMLInputElement).value;
-		
+
 		// Allow empty string or a number between 1-12
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
 			// Get the team array based on teamId
 			const teamArray = teamId === 'A' ? teamAPlayers : teamBPlayers;
-			
+
 			// Get the player (safely)
 			if (teamArray.length > playerIndex) {
 				const player = teamArray[playerIndex];
@@ -155,7 +158,7 @@
 								// Create new scores object if it doesn't exist
 								const updatedScores = { ...(p.scores || {}) };
 								updatedScores[hole] = value;
-								
+
 								// Return updated player with new scores
 								return {
 									...p,
@@ -170,7 +173,7 @@
 								// Create new scores object if it doesn't exist
 								const updatedScores = { ...(p.scores || {}) };
 								updatedScores[hole] = value;
-								
+
 								// Return updated player with new scores
 								return {
 									...p,
@@ -180,7 +183,7 @@
 							return p;
 						});
 					}
-					
+
 					// Save score to database
 					const playerId = player.player_id;
 					if (playerId) {
@@ -193,37 +196,43 @@
 </script>
 
 <div class="mb-4">
-	<h2 class="text-lg font-bold text-center mb-2">2v2 Team Shamble Scorecard</h2>
-	<div class="mb-2 text-center text-gray-600 text-sm italic">
+	<h2 class="mb-2 text-center text-lg font-bold">2v2 Team Shamble Scorecard</h2>
+	<div class="mb-2 text-center text-sm text-gray-600 italic">
 		Players select the best drive, then play their own ball for the remainder of the hole.
 	</div>
-	<div class="mb-2 text-center text-gray-600 text-lg font-semibold tracking-wide">
-		Status: <span class="inline-block px-2 py-1 rounded bg-gray-100 text-blue-700">{getMatchStatus()}</span>
+	<div class="mb-2 text-center text-lg font-semibold tracking-wide text-gray-600">
+		Status: <span class="inline-block rounded bg-gray-100 px-2 py-1 text-blue-700"
+			>{getMatchStatus()}</span
+		>
 	</div>
 	<div class="overflow-x-auto">
-		<table class="min-w-full border text-base rounded-lg shadow bg-white">
+		<table class="min-w-full rounded-lg border bg-white text-base shadow">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
+					<th class="sticky left-0 z-10 border bg-gray-100 px-2 py-1 text-center text-xs font-bold"
+						>Hole</th
+					>
 					{#each safeTeamAPlayers as player, index (player.player_id)}
-						<th class="border px-2 py-1 text-center text-blue-700 font-bold bg-blue-50">
+						<th class="border bg-blue-50 px-2 py-1 text-center font-bold text-blue-700">
 							A{index + 1}: {player.username || player.player?.username || 'Player'}
 						</th>
 					{/each}
-					<th class="border px-2 py-1 text-center font-bold bg-blue-100">Team A Best</th>
+					<th class="border bg-blue-100 px-2 py-1 text-center font-bold">Team A Best</th>
 					{#each safeTeamBPlayers as player, index (player.player_id)}
-						<th class="border px-2 py-1 text-center text-green-700 font-bold bg-green-50">
+						<th class="border bg-green-50 px-2 py-1 text-center font-bold text-green-700">
 							B{index + 1}: {player.username || player.player?.username || 'Player'}
 						</th>
 					{/each}
-					<th class="border px-2 py-1 text-center font-bold bg-green-100">Team B Best</th>
+					<th class="border bg-green-100 px-2 py-1 text-center font-bold">Team B Best</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each safeHoles as hole (hole)}
 					<tr>
-						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
-						
+						<td class="sticky left-0 z-10 border bg-gray-50 px-2 py-1 text-center font-bold"
+							>{hole}</td
+						>
+
 						<!-- Team A Players -->
 						{#each safeTeamAPlayers as player, index (player.player_id)}
 							<td class="border px-2 py-1 text-center">
@@ -232,7 +241,7 @@
 										type="number"
 										min="1"
 										max="20"
-										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none shadow-inner"
+										class="h-10 w-16 rounded border bg-blue-50 p-1 text-center text-lg font-semibold shadow-inner focus:bg-blue-100 focus:outline-none"
 										value={getPlayerScore(player, hole)}
 										on:input={(e) => handleScoreChange('A', index, hole, e)}
 									/>
@@ -251,24 +260,28 @@
 								{/if}
 							</td>
 						{/each}
-						
+
 						<!-- Team A Best Score -->
-						<td 
-							class="border px-2 py-1 text-center font-bold bg-blue-100"
+						<td
+							class="border bg-blue-100 px-2 py-1 text-center font-bold"
 							class:bg-green-200={getWinningTeam(hole) === 'A'}
 							class:bg-yellow-200={getWinningTeam(hole) === 'tie'}
 						>
-							{safeTeamAPlayers.map(p => getPlayerScore(p, hole))
-								.filter(score => score !== '')
-								.map(score => Number(score))
-								.filter(score => !isNaN(score)).length > 0 
-									? Math.min(...safeTeamAPlayers.map(p => getPlayerScore(p, hole))
-										.filter(score => score !== '')
-										.map(score => Number(score))
-										.filter(score => !isNaN(score))) 
-									: ''}
+							{safeTeamAPlayers
+								.map((p) => getPlayerScore(p, hole))
+								.filter((score) => score !== '')
+								.map((score) => Number(score))
+								.filter((score) => !isNaN(score)).length > 0
+								? Math.min(
+										...safeTeamAPlayers
+											.map((p) => getPlayerScore(p, hole))
+											.filter((score) => score !== '')
+											.map((score) => Number(score))
+											.filter((score) => !isNaN(score))
+									)
+								: ''}
 						</td>
-						
+
 						<!-- Team B Players -->
 						{#each safeTeamBPlayers as player, index (player.player_id)}
 							<td class="border px-2 py-1 text-center">
@@ -277,7 +290,7 @@
 										type="number"
 										min="1"
 										max="20"
-										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-green-50 focus:bg-green-100 focus:outline-none shadow-inner"
+										class="h-10 w-16 rounded border bg-green-50 p-1 text-center text-lg font-semibold shadow-inner focus:bg-green-100 focus:outline-none"
 										value={getPlayerScore(player, hole)}
 										on:input={(e) => handleScoreChange('B', index, hole, e)}
 									/>
@@ -296,37 +309,47 @@
 								{/if}
 							</td>
 						{/each}
-						
+
 						<!-- Team B Best Score -->
-						<td 
-							class="border px-2 py-1 text-center font-bold bg-green-100"
+						<td
+							class="border bg-green-100 px-2 py-1 text-center font-bold"
 							class:bg-green-200={getWinningTeam(hole) === 'B'}
 							class:bg-yellow-200={getWinningTeam(hole) === 'tie'}
 						>
-							{safeTeamBPlayers.map(p => getPlayerScore(p, hole))
-								.filter(score => score !== '')
-								.map(score => Number(score))
-								.filter(score => !isNaN(score)).length > 0 
-									? Math.min(...safeTeamBPlayers.map(p => getPlayerScore(p, hole))
-										.filter(score => score !== '')
-										.map(score => Number(score))
-										.filter(score => !isNaN(score))) 
-									: ''}
+							{safeTeamBPlayers
+								.map((p) => getPlayerScore(p, hole))
+								.filter((score) => score !== '')
+								.map((score) => Number(score))
+								.filter((score) => !isNaN(score)).length > 0
+								? Math.min(
+										...safeTeamBPlayers
+											.map((p) => getPlayerScore(p, hole))
+											.filter((score) => score !== '')
+											.map((score) => Number(score))
+											.filter((score) => !isNaN(score))
+									)
+								: ''}
 						</td>
 					</tr>
 				{/each}
-				
+
 				<!-- Totals row -->
 				<tr class="bg-gray-100">
-					<td class="border px-2 py-1 font-bold text-center bg-gray-200 sticky left-0 z-10">Total</td>
+					<td class="sticky left-0 z-10 border bg-gray-200 px-2 py-1 text-center font-bold"
+						>Total</td
+					>
 					{#each safeTeamAPlayers as player, index (player.player_id)}
 						<td class="border px-2 py-1 text-center"></td>
 					{/each}
-					<td class="border px-2 py-1 text-center font-bold bg-blue-200">{getTeamTotal(safeTeamAPlayers)}</td>
+					<td class="border bg-blue-200 px-2 py-1 text-center font-bold"
+						>{getTeamTotal(safeTeamAPlayers)}</td
+					>
 					{#each safeTeamBPlayers as player, index (player.player_id)}
 						<td class="border px-2 py-1 text-center"></td>
 					{/each}
-					<td class="border px-2 py-1 text-center font-bold bg-green-200">{getTeamTotal(safeTeamBPlayers)}</td>
+					<td class="border bg-green-200 px-2 py-1 text-center font-bold"
+						>{getTeamTotal(safeTeamBPlayers)}</td
+					>
 				</tr>
 			</tbody>
 		</table>

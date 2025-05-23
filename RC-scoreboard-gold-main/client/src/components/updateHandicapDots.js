@@ -58,10 +58,10 @@ const newFunction = `// For Best Ball, we need to track individual player scores
     }
   }, [isBestBall, playerHandicaps, holes, aviatorPlayersList, producerPlayersList, getPlayerCourseHandicap]);`;
 
-if (!content.includes("Ensure handicap strokes are visible in the UI")) {
-  content = content.replace(searchString, newFunction);
-  fs.writeFileSync('./client/src/components/EnhancedMatchScorecard.tsx', content);
-  console.log("Added handicap visibility function");
+if (!content.includes('Ensure handicap strokes are visible in the UI')) {
+	content = content.replace(searchString, newFunction);
+	fs.writeFileSync('./client/src/components/EnhancedMatchScorecard.tsx', content);
+	console.log('Added handicap visibility function');
 } else {
-  console.log("Handicap visibility function already exists");
+	console.log('Handicap visibility function already exists');
 }

@@ -57,7 +57,7 @@ export function calculateNetScore(
 /**
  * Calculate handicap dots for a player on a specific hole, using course data if available.
  * Handicap dots represent the number of strokes a player gets on a specific hole.
- * 
+ *
  * In golf, handicap strokes are allocated based on hole difficulty:
  * - For handicaps 1-18: Strokes are given on the X hardest holes (where X is the handicap)
  * - For handicaps > 18: Player gets a stroke on every hole, plus additional strokes

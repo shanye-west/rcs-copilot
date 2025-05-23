@@ -54,7 +54,10 @@ export async function load({ params }) {
 			matchPlayers = matchPlayersData || [];
 		}
 
-		const { data: scoresData, error: scoresError } = await supabase.from('match_scores').select('*').eq('match_id', matchId);
+		const { data: scoresData, error: scoresError } = await supabase
+			.from('match_scores')
+			.select('*')
+			.eq('match_id', matchId);
 		if (scoresError) {
 			errors.push('Failed to load scores.');
 			console.error('Scores fetch error:', scoresError);
@@ -80,5 +83,13 @@ export async function load({ params }) {
 		console.error('Unexpected match load error:', err);
 	}
 
-	return { match, teams, matchType, matchPlayers, scores, course, error: errors.length ? errors : null };
+	return {
+		match,
+		teams,
+		matchType,
+		matchPlayers,
+		scores,
+		course,
+		error: errors.length ? errors : null
+	};
 }

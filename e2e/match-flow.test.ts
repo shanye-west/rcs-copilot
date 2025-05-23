@@ -172,7 +172,7 @@ test.describe('Admin Flow', () => {
 
 		// Go to the first tournament
 		const tournamentLinks = page.locator('a[href^="/admin/tournament/"]');
-		if (await tournamentLinks.count() === 0) {
+		if ((await tournamentLinks.count()) === 0) {
 			console.warn('No tournaments available');
 			return;
 		}
@@ -181,7 +181,7 @@ test.describe('Admin Flow', () => {
 
 		// Go to the first round
 		const roundLinks = page.locator('a[href^="/admin/round/"]');
-		if (await roundLinks.count() === 0) {
+		if ((await roundLinks.count()) === 0) {
 			console.warn('No rounds available');
 			return;
 		}
@@ -190,7 +190,7 @@ test.describe('Admin Flow', () => {
 
 		// Go to the first match
 		const matchLinks = page.locator('a[href^="/admin/match/"]');
-		if (await matchLinks.count() === 0) {
+		if ((await matchLinks.count()) === 0) {
 			console.warn('No matches available');
 			return;
 		}

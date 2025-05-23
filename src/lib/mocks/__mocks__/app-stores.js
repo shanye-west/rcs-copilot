@@ -4,9 +4,9 @@ import { vi } from 'vitest';
 
 // Mock for getStores
 export const getStores = vi.fn(() => ({
-    page: readable({ url: new URL('http://localhost'), params: {} }),
-    navigating: readable(null),
-    updated: readable(false)
+	page: readable({ url: new URL('http://localhost'), params: {} }),
+	navigating: readable(null),
+	updated: readable(false)
 }));
 
 // Mock for page store

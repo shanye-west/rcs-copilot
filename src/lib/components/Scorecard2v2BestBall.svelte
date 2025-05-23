@@ -44,7 +44,9 @@
 	export let holes: number[] = Array.from({ length: 18 }, (_, i) => i + 1);
 	export let isLocked: boolean = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: ((playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined) | undefined;
+	export let getSyncStatus:
+		| ((playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined)
+		| undefined;
 	export let matchId: string;
 	export let courseId: string;
 
@@ -96,7 +98,6 @@
 
 			if (holesError) throw holesError;
 			courseHoles = holesData || [];
-
 		} catch (error) {
 			console.error('Error loading course data:', error);
 			errorMessage = 'Failed to load course data';
@@ -108,26 +109,23 @@
 		if (!course) return;
 
 		const allPlayers = [...safeTeamAPlayers, ...safeTeamBPlayers];
-		
+
 		// Calculate course handicap for each player
 		for (const player of allPlayers) {
 			if (player.player.handicap_index && course.course_slope && course.course_rating) {
 				// GHIN formula: (Handicap Index × Slope Rating ÷ 113) + (Course Rating - Par)
 				const par = courseHoles.reduce((sum, hole) => sum + hole.par, 0);
 				const courseHandicap = Math.round(
-					(player.player.handicap_index * course.course_slope / 113) + 
-					(course.course_rating - par)
+					(player.player.handicap_index * course.course_slope) / 113 + (course.course_rating - par)
 				);
-				
+
 				player.playing_course_handicap = Math.max(0, courseHandicap);
 			}
 		}
 
 		// Find lowest handicap for stroke allocation
 		const lowestHandicap = Math.min(
-			...allPlayers
-				.map(p => p.playing_course_handicap || 0)
-				.filter(h => h !== undefined)
+			...allPlayers.map((p) => p.playing_course_handicap || 0).filter((h) => h !== undefined)
 		);
 
 		// Calculate strokes relative to lowest handicap
@@ -156,16 +154,16 @@
 	// Initialize player scores from existing data
 	function initializePlayerScores() {
 		const allPlayers = [...safeTeamAPlayers, ...safeTeamBPlayers];
-		
-		allPlayers.forEach(player => {
+
+		allPlayers.forEach((player) => {
 			if (!player.scores) {
 				player.scores = {};
 			}
-			
+
 			// Load existing scores
-			safeHoles.forEach(hole => {
-				const existingScore = scores.find(s => 
-					s.player_id === player.player_id && s.hole_number === hole
+			safeHoles.forEach((hole) => {
+				const existingScore = scores.find(
+					(s) => s.player_id === player.player_id && s.hole_number === hole
 				);
 				if (existingScore && existingScore.gross_score) {
 					player.scores[hole] = existingScore.gross_score;
@@ -177,8 +175,8 @@
 	// Calculate if player gets stroke on this hole
 	function getStrokeForHole(player: Player, holeNumber: number): boolean {
 		if (!player.course_strokes || !courseHoles.length) return false;
-		
-		const hole = courseHoles.find(h => h.hole_number === holeNumber);
+
+		const hole = courseHoles.find((h) => h.hole_number === holeNumber);
 		if (!hole) return false;
 
 		return hole.hole_handicap_rank <= player.course_strokes;
@@ -191,13 +189,13 @@
 
 		const numGross = Number(grossScore);
 		const strokesReceived = getStrokeForHole(player, holeNumber) ? 1 : 0;
-		
+
 		return numGross - strokesReceived;
 	}
 
 	// Calculate team scores for all holes
 	function calculateAllTeamScores() {
-		safeHoles.forEach(hole => {
+		safeHoles.forEach((hole) => {
 			calculateTeamScoreForHole(hole);
 		});
 		updateMatchStatus();
@@ -207,16 +205,16 @@
 	function calculateTeamScoreForHole(holeNumber: number) {
 		// Team A best net score
 		const teamANetScores = safeTeamAPlayers
-			.map(player => calculateNetScore(player, holeNumber))
-			.filter(score => score !== null) as number[];
-		
+			.map((player) => calculateNetScore(player, holeNumber))
+			.filter((score) => score !== null) as number[];
+
 		const teamABest = teamANetScores.length > 0 ? Math.min(...teamANetScores) : null;
 
 		// Team B best net score
 		const teamBNetScores = safeTeamBPlayers
-			.map(player => calculateNetScore(player, holeNumber))
-			.filter(score => score !== null) as number[];
-		
+			.map((player) => calculateNetScore(player, holeNumber))
+			.filter((score) => score !== null) as number[];
+
 		const teamBBest = teamBNetScores.length > 0 ? Math.min(...teamBNetScores) : null;
 
 		// Determine winning team
@@ -240,13 +238,13 @@
 		let teamAHoles = 0;
 		let teamBHoles = 0;
 
-		Object.values(teamScores).forEach(score => {
+		Object.values(teamScores).forEach((score) => {
 			if (score.winning_team === 'A') teamAHoles++;
 			else if (score.winning_team === 'B') teamBHoles++;
 		});
 
 		const difference = teamAHoles - teamBHoles;
-		
+
 		if (difference === 0) {
 			matchStatus = 'AS';
 		} else if (difference > 0) {
@@ -276,15 +274,14 @@
 		try {
 			const numericValue = value === '' ? null : Number(value);
 			await saveScore(player.player_id, holeNumber, numericValue);
-			
+
 			// Recalculate team scores
 			calculateTeamScoreForHole(holeNumber);
 			updateMatchStatus();
-			
 		} catch (error) {
 			console.error('Error saving score:', error);
 			errorMessage = 'Failed to save score. Please try again.';
-			
+
 			// Show error notification
 			setTimeout(() => {
 				errorMessage = '';
@@ -300,9 +297,8 @@
 		const teamScore = teamScores[holeNumber];
 		if (!teamScore) return false;
 
-		const teamNet = player.team_id === safeTeamAPlayers[0]?.team_id 
-			? teamScore.team_a_net 
-			: teamScore.team_b_net;
+		const teamNet =
+			player.team_id === safeTeamAPlayers[0]?.team_id ? teamScore.team_a_net : teamScore.team_b_net;
 
 		return playerNet === teamNet;
 	}
@@ -330,73 +326,85 @@
 
 <!-- Error notification -->
 {#if errorMessage}
-	<div class="fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50">
+	<div class="fixed top-4 right-4 z-50 rounded-lg bg-red-500 px-4 py-2 text-white shadow-lg">
 		{errorMessage}
 	</div>
 {/if}
 
 <!-- Offline indicator -->
 {#if isOffline}
-	<div class="fixed top-4 left-4 bg-yellow-500 text-white px-3 py-1 rounded-lg text-sm z-50">
+	<div class="fixed top-4 left-4 z-50 rounded-lg bg-yellow-500 px-3 py-1 text-sm text-white">
 		📱 Offline
 	</div>
 {/if}
 
 <div class="mb-4">
-	<h2 class="text-lg font-bold text-center mb-2">2v2 Team Best Ball Scorecard</h2>
-	<div class="mb-2 text-center text-gray-600 text-sm italic">
+	<h2 class="mb-2 text-center text-lg font-bold">2v2 Team Best Ball Scorecard</h2>
+	<div class="mb-2 text-center text-sm text-gray-600 italic">
 		Each player plays their own ball. Best net score counts for the team.
 	</div>
-	<div class="mb-4 text-center text-gray-600 text-lg font-semibold tracking-wide">
-		Match Status: <span class="inline-block px-3 py-1 rounded {
-			matchStatus === 'AS' ? 'bg-gray-100 text-gray-700' :
-			matchStatus.includes('A') ? 'bg-blue-100 text-blue-700' :
-			'bg-red-100 text-red-700'
-		}">{matchStatus}</span>
+	<div class="mb-4 text-center text-lg font-semibold tracking-wide text-gray-600">
+		Match Status: <span
+			class="inline-block rounded px-3 py-1 {matchStatus === 'AS'
+				? 'bg-gray-100 text-gray-700'
+				: matchStatus.includes('A')
+					? 'bg-blue-100 text-blue-700'
+					: 'bg-red-100 text-red-700'}">{matchStatus}</span
+		>
 	</div>
 
 	<div class="overflow-x-auto">
-		<table class="min-w-full border text-sm rounded-lg shadow bg-white">
+		<table class="min-w-full rounded-lg border bg-white text-sm shadow">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
+					<th class="sticky left-0 z-10 border bg-gray-100 px-2 py-1 text-center text-xs font-bold"
+						>Hole</th
+					>
 					<!-- Team A Players -->
 					{#each safeTeamAPlayers as player (player.player_id)}
-						<th class="border px-1 py-1 text-center text-blue-700 font-bold bg-blue-50 min-w-[80px]">
+						<th
+							class="min-w-[80px] border bg-blue-50 px-1 py-1 text-center font-bold text-blue-700"
+						>
 							<div class="text-xs">{player.player.username}</div>
 							<div class="text-xs text-blue-500">HC: {player.playing_course_handicap || 0}</div>
 						</th>
 					{/each}
-					<th class="border px-2 py-1 text-center font-bold bg-blue-100 min-w-[60px]">Team A</th>
-					
+					<th class="min-w-[60px] border bg-blue-100 px-2 py-1 text-center font-bold">Team A</th>
+
 					<!-- Team B Players -->
 					{#each safeTeamBPlayers as player (player.player_id)}
-						<th class="border px-1 py-1 text-center text-red-700 font-bold bg-red-50 min-w-[80px]">
+						<th class="min-w-[80px] border bg-red-50 px-1 py-1 text-center font-bold text-red-700">
 							<div class="text-xs">{player.player.username}</div>
 							<div class="text-xs text-red-500">HC: {player.playing_course_handicap || 0}</div>
 						</th>
 					{/each}
-					<th class="border px-2 py-1 text-center font-bold bg-red-100 min-w-[60px]">Team B</th>
+					<th class="min-w-[60px] border bg-red-100 px-2 py-1 text-center font-bold">Team B</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each safeHoles as hole (hole)}
 					{@const teamScore = teamScores[hole]}
 					<tr>
-						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
-						
+						<td class="sticky left-0 z-10 border bg-gray-50 px-2 py-1 text-center font-bold"
+							>{hole}</td
+						>
+
 						<!-- Team A Players -->
 						{#each safeTeamAPlayers as player (player.player_id)}
 							{@const netScore = calculateNetScore(player, hole)}
 							{@const isUsed = isPlayerScoreUsed(player, hole)}
-							<td class="border px-1 py-1 text-center {isUsed ? 'bg-green-100 ring-2 ring-green-300' : ''}">
+							<td
+								class="border px-1 py-1 text-center {isUsed
+									? 'bg-green-100 ring-2 ring-green-300'
+									: ''}"
+							>
 								{#if !isLocked}
 									<div class="relative">
 										<input
 											type="number"
 											min="1"
 											max="15"
-											class="w-14 h-8 rounded border p-1 text-center text-sm font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none"
+											class="h-8 w-14 rounded border bg-blue-50 p-1 text-center text-sm font-semibold focus:bg-blue-100 focus:outline-none"
 											value={player.scores?.[hole] || ''}
 											on:input={(e) => handleScoreChange(player, hole, e)}
 										/>
@@ -404,7 +412,7 @@
 											<span class="absolute -top-1 -right-1 text-xs text-blue-600">•</span>
 										{/if}
 									</div>
-									<div class="text-xs mt-1 text-gray-500">
+									<div class="mt-1 text-xs text-gray-500">
 										{netScore !== null ? `Net: ${netScore}` : ''}
 									</div>
 									<!-- Sync status -->
@@ -426,27 +434,35 @@
 								{/if}
 							</td>
 						{/each}
-						
+
 						<!-- Team A Best Score -->
-						<td class="border px-2 py-1 text-center font-bold bg-blue-100 {
-							teamScore?.winning_team === 'A' ? 'bg-green-200 text-green-800' :
-							teamScore?.winning_team === 'tie' ? 'bg-yellow-200 text-yellow-800' : ''
-						}">
+						<td
+							class="border bg-blue-100 px-2 py-1 text-center font-bold {teamScore?.winning_team ===
+							'A'
+								? 'bg-green-200 text-green-800'
+								: teamScore?.winning_team === 'tie'
+									? 'bg-yellow-200 text-yellow-800'
+									: ''}"
+						>
 							{teamScore?.team_a_net || ''}
 						</td>
-						
+
 						<!-- Team B Players -->
 						{#each safeTeamBPlayers as player (player.player_id)}
 							{@const netScore = calculateNetScore(player, hole)}
 							{@const isUsed = isPlayerScoreUsed(player, hole)}
-							<td class="border px-1 py-1 text-center {isUsed ? 'bg-green-100 ring-2 ring-green-300' : ''}">
+							<td
+								class="border px-1 py-1 text-center {isUsed
+									? 'bg-green-100 ring-2 ring-green-300'
+									: ''}"
+							>
 								{#if !isLocked}
 									<div class="relative">
 										<input
 											type="number"
 											min="1"
 											max="15"
-											class="w-14 h-8 rounded border p-1 text-center text-sm font-semibold bg-red-50 focus:bg-red-100 focus:outline-none"
+											class="h-8 w-14 rounded border bg-red-50 p-1 text-center text-sm font-semibold focus:bg-red-100 focus:outline-none"
 											value={player.scores?.[hole] || ''}
 											on:input={(e) => handleScoreChange(player, hole, e)}
 										/>
@@ -454,7 +470,7 @@
 											<span class="absolute -top-1 -right-1 text-xs text-red-600">•</span>
 										{/if}
 									</div>
-									<div class="text-xs mt-1 text-gray-500">
+									<div class="mt-1 text-xs text-gray-500">
 										{netScore !== null ? `Net: ${netScore}` : ''}
 									</div>
 									<!-- Sync status -->
@@ -476,54 +492,70 @@
 								{/if}
 							</td>
 						{/each}
-						
+
 						<!-- Team B Best Score -->
-						<td class="border px-2 py-1 text-center font-bold bg-red-100 {
-							teamScore?.winning_team === 'B' ? 'bg-green-200 text-green-800' :
-							teamScore?.winning_team === 'tie' ? 'bg-yellow-200 text-yellow-800' : ''
-						}">
+						<td
+							class="border bg-red-100 px-2 py-1 text-center font-bold {teamScore?.winning_team ===
+							'B'
+								? 'bg-green-200 text-green-800'
+								: teamScore?.winning_team === 'tie'
+									? 'bg-yellow-200 text-yellow-800'
+									: ''}"
+						>
 							{teamScore?.team_b_net || ''}
 						</td>
 					</tr>
 				{/each}
-				
+
 				<!-- Front 9 Total -->
 				<tr class="bg-gray-100 font-semibold">
-					<td class="border px-2 py-1 text-center bg-gray-200 sticky left-0 z-10">OUT</td>
+					<td class="sticky left-0 z-10 border bg-gray-200 px-2 py-1 text-center">OUT</td>
 					{#each safeTeamAPlayers as player}
 						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, frontNine)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center bg-blue-200">{getTeamTotal(safeTeamAPlayers, frontNine)}</td>
+					<td class="border bg-blue-200 px-2 py-1 text-center"
+						>{getTeamTotal(safeTeamAPlayers, frontNine)}</td
+					>
 					{#each safeTeamBPlayers as player}
 						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, frontNine)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center bg-red-200">{getTeamTotal(safeTeamBPlayers, frontNine)}</td>
+					<td class="border bg-red-200 px-2 py-1 text-center"
+						>{getTeamTotal(safeTeamBPlayers, frontNine)}</td
+					>
 				</tr>
-				
+
 				<!-- Back 9 Total -->
 				<tr class="bg-gray-100 font-semibold">
-					<td class="border px-2 py-1 text-center bg-gray-200 sticky left-0 z-10">IN</td>
+					<td class="sticky left-0 z-10 border bg-gray-200 px-2 py-1 text-center">IN</td>
 					{#each safeTeamAPlayers as player}
 						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, backNine)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center bg-blue-200">{getTeamTotal(safeTeamAPlayers, backNine)}</td>
+					<td class="border bg-blue-200 px-2 py-1 text-center"
+						>{getTeamTotal(safeTeamAPlayers, backNine)}</td
+					>
 					{#each safeTeamBPlayers as player}
 						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, backNine)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center bg-red-200">{getTeamTotal(safeTeamBPlayers, backNine)}</td>
+					<td class="border bg-red-200 px-2 py-1 text-center"
+						>{getTeamTotal(safeTeamBPlayers, backNine)}</td
+					>
 				</tr>
-				
+
 				<!-- Total -->
 				<tr class="bg-gray-200 font-bold">
-					<td class="border px-2 py-1 text-center bg-gray-300 sticky left-0 z-10">TOTAL</td>
+					<td class="sticky left-0 z-10 border bg-gray-300 px-2 py-1 text-center">TOTAL</td>
 					{#each safeTeamAPlayers as player}
 						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, safeHoles)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center bg-blue-300">{getTeamTotal(safeTeamAPlayers, safeHoles)}</td>
+					<td class="border bg-blue-300 px-2 py-1 text-center"
+						>{getTeamTotal(safeTeamAPlayers, safeHoles)}</td
+					>
 					{#each safeTeamBPlayers as player}
 						<td class="border px-1 py-1 text-center">{getPlayerTotal(player, safeHoles)}</td>
 					{/each}
-					<td class="border px-2 py-1 text-center bg-red-300">{getTeamTotal(safeTeamBPlayers, safeHoles)}</td>
+					<td class="border bg-red-300 px-2 py-1 text-center"
+						>{getTeamTotal(safeTeamBPlayers, safeHoles)}</td
+					>
 				</tr>
 			</tbody>
 		</table>

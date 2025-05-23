@@ -2,317 +2,329 @@
 
 /* Card styles */
 .bet-card {
-  @apply bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 transition-all duration-200;
+	@apply overflow-hidden rounded-lg border border-gray-200 bg-white shadow-md transition-all duration-200;
 }
 
 .bet-card:hover {
-  @apply shadow-lg transform translate-y-[-2px];
+	@apply translate-y-[-2px] transform shadow-lg;
 }
 
 .bet-card-header {
-  @apply p-4 border-b border-gray-100;
+	@apply border-b border-gray-100 p-4;
 }
 
 .bet-card-body {
-  @apply p-4;
+	@apply p-4;
 }
 
 .bet-card-footer {
-  @apply p-4 bg-gray-50 border-t border-gray-100;
+	@apply border-t border-gray-100 bg-gray-50 p-4;
 }
 
 /* Status badges */
 .status-badge {
-  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+	@apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
 }
 
 .status-badge-pending {
-  @apply bg-blue-100 text-blue-800;
+	@apply bg-blue-100 text-blue-800;
 }
 
 .status-badge-accepted {
-  @apply bg-green-100 text-green-800;
+	@apply bg-green-100 text-green-800;
 }
 
 .status-badge-declined {
-  @apply bg-red-100 text-red-800;
+	@apply bg-red-100 text-red-800;
 }
 
 .status-badge-completed {
-  @apply bg-purple-100 text-purple-800;
+	@apply bg-purple-100 text-purple-800;
 }
 
 .status-badge-paid {
-  @apply bg-gray-100 text-gray-800;
+	@apply bg-gray-100 text-gray-800;
 }
 
 .status-badge-unpaid {
-  @apply bg-yellow-100 text-yellow-800;
+	@apply bg-yellow-100 text-yellow-800;
 }
 
 /* Amount display */
 .amount-display {
-  @apply text-2xl font-bold;
+	@apply text-2xl font-bold;
 }
 
 .amount-display-positive {
-  @apply text-green-600;
+	@apply text-green-600;
 }
 
 .amount-display-negative {
-  @apply text-red-600;
+	@apply text-red-600;
 }
 
 .amount-display-neutral {
-  @apply text-gray-600;
+	@apply text-gray-600;
 }
 
 /* Stats cards */
 .stats-card {
-  @apply bg-white rounded-lg shadow p-4 border border-gray-200;
+	@apply rounded-lg border border-gray-200 bg-white p-4 shadow;
 }
 
 /* Tab styles */
 .tab-button {
-  @apply inline-flex items-center px-4 py-2 border-b-2 font-medium text-sm transition-colors duration-200;
+	@apply inline-flex items-center border-b-2 px-4 py-2 text-sm font-medium transition-colors duration-200;
 }
 
 .tab-button-active {
-  @apply border-blue-500 text-blue-600;
+	@apply border-blue-500 text-blue-600;
 }
 
 .tab-button-inactive {
-  @apply border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300;
+	@apply border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700;
 }
 
 /* Action buttons */
 .action-button-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium transition-colors duration-200;
+	@apply rounded bg-blue-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-blue-700;
 }
 
 .action-button-success {
-  @apply bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium transition-colors duration-200;
+	@apply rounded bg-green-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-green-700;
 }
 
 .action-button-danger {
-  @apply bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium transition-colors duration-200;
+	@apply rounded bg-red-600 px-4 py-2 font-medium text-white transition-colors duration-200 hover:bg-red-700;
 }
 
 .action-button-secondary {
-  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded font-medium transition-colors duration-200;
+	@apply rounded bg-gray-200 px-4 py-2 font-medium text-gray-800 transition-colors duration-200 hover:bg-gray-300;
 }
 
 /* Animation classes */
 .fade-in {
-  animation: fadeIn 0.3s ease-in-out;
+	animation: fadeIn 0.3s ease-in-out;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
 }
 
 .slide-in {
-  animation: slideIn 0.3s ease-in-out;
+	animation: slideIn 0.3s ease-in-out;
 }
 
 @keyframes slideIn {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+	from {
+		transform: translateY(10px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
 }
 
 /* Resolution type indicators */
 .resolution-badge {
-  @apply inline-flex items-center px-2 py-1 rounded text-xs font-medium;
+	@apply inline-flex items-center rounded px-2 py-1 text-xs font-medium;
 }
 
 .resolution-badge-match {
-  @apply bg-blue-100 text-blue-800;
+	@apply bg-blue-100 text-blue-800;
 }
 
 .resolution-badge-round {
-  @apply bg-green-100 text-green-800;
+	@apply bg-green-100 text-green-800;
 }
 
 .resolution-badge-tournament {
-  @apply bg-purple-100 text-purple-800;
+	@apply bg-purple-100 text-purple-800;
 }
 
 .resolution-badge-custom {
-  @apply bg-gray-100 text-gray-800;
+	@apply bg-gray-100 text-gray-800;
 }
 
 /* Form styles */
 .form-input {
-  @apply w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
+	@apply w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
 }
 
 .form-select {
-  @apply w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
+	@apply w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500;
 }
 
 .form-label {
-  @apply block text-sm font-medium text-gray-700 mb-1;
+	@apply mb-1 block text-sm font-medium text-gray-700;
 }
 
 /* Winner indicator */
 .winner-badge {
-  @apply inline-flex items-center px-2 py-1 rounded font-medium text-sm;
+	@apply inline-flex items-center rounded px-2 py-1 text-sm font-medium;
 }
 
 .winner-badge-user {
-  @apply bg-green-100 text-green-700;
+	@apply bg-green-100 text-green-700;
 }
 
 .winner-badge-opponent {
-  @apply bg-purple-100 text-purple-700;
+	@apply bg-purple-100 text-purple-700;
 }
 
 /* Pulse animation for active bets */
 .pulse-badge {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
 }
 
 /* Pop-in animation for success feedback */
 .pop-in {
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes popIn {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
 }
 
 /* Golf gradient header */
 .golf-gradient {
-  background: linear-gradient(135deg, #1e3a8a 0%, #047857 100%);
+	background: linear-gradient(135deg, #1e3a8a 0%, #047857 100%);
 }
 
 /* Hide scrollbar but allow scrolling */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+	-ms-overflow-style: none; /* Internet Explorer 10+ */
+	scrollbar-width: none; /* Firefox */
 }
 
-.hide-scrollbar::-webkit-scrollbar { 
-  display: none;  /* Safari and Chrome */
+.hide-scrollbar::-webkit-scrollbar {
+	display: none; /* Safari and Chrome */
 }
 
 /* Winner indicator */
 .winner-badge {
-  @apply inline-flex items-center px-2 py-1 rounded font-medium text-sm;
+	@apply inline-flex items-center rounded px-2 py-1 text-sm font-medium;
 }
 
 .winner-badge-user {
-  @apply bg-green-100 text-green-700;
+	@apply bg-green-100 text-green-700;
 }
 
 .winner-badge-opponent {
-  @apply bg-purple-100 text-purple-700;
+	@apply bg-purple-100 text-purple-700;
 }
 
 /* Pulse animation for active bets */
 .pulse-badge {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
 }
 
 /* Pop-in animation for success feedback */
 .pop-in {
-  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 @keyframes popIn {
-  0% {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+	0% {
+		transform: scale(0.8);
+		opacity: 0;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
 }
 
 /* Golf gradient header */
 .golf-gradient {
-  background: linear-gradient(135deg, #1e3a8a 0%, #047857 100%);
+	background: linear-gradient(135deg, #1e3a8a 0%, #047857 100%);
 }
 
 /* Hide scrollbar but allow scrolling */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* Internet Explorer 10+ */
-  scrollbar-width: none;  /* Firefox */
+	-ms-overflow-style: none; /* Internet Explorer 10+ */
+	scrollbar-width: none; /* Firefox */
 }
 
-.hide-scrollbar::-webkit-scrollbar { 
-  display: none;  /* Safari and Chrome */
+.hide-scrollbar::-webkit-scrollbar {
+	display: none; /* Safari and Chrome */
 }
 
 /* Fallback classes without Tailwind @apply */
 .bet-card-fallback {
-  background-color: white;
-  border-radius: 0.5rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s;
+	background-color: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+	overflow: hidden;
+	border: 1px solid #e5e7eb;
+	transition: all 0.2s;
 }
 
 .bet-card-fallback:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+	transform: translateY(-2px);
 }
 
 .status-badge-fallback {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.625rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 500;
+	display: inline-flex;
+	align-items: center;
+	padding: 0.125rem 0.625rem;
+	border-radius: 9999px;
+	font-size: 0.75rem;
+	font-weight: 500;
 }
 
 .action-button-primary-fallback {
-  background-color: #2563eb;
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-weight: 500;
-  transition: background-color 0.2s;
+	background-color: #2563eb;
+	color: white;
+	padding: 0.5rem 1rem;
+	border-radius: 0.375rem;
+	font-weight: 500;
+	transition: background-color 0.2s;
 }
 
 .action-button-primary-fallback:hover {
-  background-color: #1d4ed8;
+	background-color: #1d4ed8;
 }
 
 .winner-badge-fallback {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-  font-weight: 500;
-  font-size: 0.875rem;
+	display: inline-flex;
+	align-items: center;
+	padding: 0.25rem 0.5rem;
+	border-radius: 0.25rem;
+	font-weight: 500;
+	font-size: 0.875rem;
 }

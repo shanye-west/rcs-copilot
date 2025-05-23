@@ -24,7 +24,9 @@
 	export let holes: number[] = [];
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: ((playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined) | undefined;
+	export let getSyncStatus:
+		| ((playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined)
+		| undefined;
 
 	// Defensive: make sure arrays are never undefined and players have scores
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -62,7 +64,7 @@
 		if (!teamAPlayer1 || !teamAPlayer1.scores) return '';
 		return teamAPlayer1.scores[hole] || '';
 	}
-	
+
 	function getTeamBScore(hole: number): string | number {
 		if (!teamBPlayer1 || !teamBPlayer1.scores) return '';
 		return teamBPlayer1.scores[hole] || '';
@@ -93,12 +95,12 @@
 		if (value === '' || (parseInt(value) >= 1 && parseInt(value) <= 12)) {
 			if (team === 'A') {
 				// Create a new array with the updated player
-				teamAPlayers = teamAPlayers.map(player => {
+				teamAPlayers = teamAPlayers.map((player) => {
 					if (player === teamAPlayers[0]) {
 						// Create new scores object if it doesn't exist
 						const updatedScores = { ...(player.scores || {}) };
 						updatedScores[hole] = value;
-						
+
 						// Return updated player with new scores
 						return {
 							...player,
@@ -107,23 +109,19 @@
 					}
 					return player;
 				});
-				
+
 				// Save it outside of the reactive assignment
 				if (teamAPlayers[0]?.player_id) {
-					saveScore(
-						teamAPlayers[0].player_id, 
-						hole, 
-						value === '' ? null : parseInt(value)
-					);
+					saveScore(teamAPlayers[0].player_id, hole, value === '' ? null : parseInt(value));
 				}
 			} else if (team === 'B') {
 				// Create a new array with the updated player
-				teamBPlayers = teamBPlayers.map(player => {
+				teamBPlayers = teamBPlayers.map((player) => {
 					if (player === teamBPlayers[0]) {
 						// Create new scores object if it doesn't exist
 						const updatedScores = { ...(player.scores || {}) };
 						updatedScores[hole] = value;
-						
+
 						// Return updated player with new scores
 						return {
 							...player,
@@ -132,14 +130,10 @@
 					}
 					return player;
 				});
-				
+
 				// Save it outside of the reactive assignment
 				if (teamBPlayers[0]?.player_id) {
-					saveScore(
-						teamBPlayers[0].player_id, 
-						hole, 
-						value === '' ? null : parseInt(value)
-					);
+					saveScore(teamBPlayers[0].player_id, hole, value === '' ? null : parseInt(value));
 				}
 			}
 		}
@@ -149,7 +143,7 @@
 	function getMatchStatus(): string {
 		let teamAPoints = 0;
 		let teamBPoints = 0;
-		
+
 		// In 4v4 Scramble, each hole is worth 2 points for a win, 1 point for a tie
 		for (let hole of safeHoles) {
 			const winner = getWinningTeam(hole);
@@ -160,19 +154,22 @@
 				teamBPoints += 1;
 			}
 		}
-		
+
 		// Return the point difference
 		if (teamAPoints === teamBPoints) return 'EVEN';
 		if (teamAPoints > teamBPoints) return `+${teamAPoints - teamBPoints}`;
 		return `-${teamBPoints - teamAPoints}`;
 	}
-	
+
 	// Calculate team total scores
 	function getTeamTotal(team: 'A' | 'B'): number {
 		let total = 0;
 		for (let hole of safeHoles) {
 			const score = team === 'A' ? getTeamAScore(hole) : getTeamBScore(hole);
-			if (typeof score === 'number' || (typeof score === 'string' && !isNaN(Number(score)) && score !== '')) {
+			if (
+				typeof score === 'number' ||
+				(typeof score === 'string' && !isNaN(Number(score)) && score !== '')
+			) {
 				total += Number(score);
 			}
 		}
@@ -181,47 +178,55 @@
 </script>
 
 <div class="mb-4">
-	<h2 class="text-lg font-bold text-center mb-2">4v4 Team Scramble Scorecard</h2>
-	<div class="mb-2 text-center text-gray-600 text-sm italic">
-		Each team has four players who select the best shot on each stroke, then all players play from that position.
-		This format is worth 2 points for a win, 1 point for a tie.
+	<h2 class="mb-2 text-center text-lg font-bold">4v4 Team Scramble Scorecard</h2>
+	<div class="mb-2 text-center text-sm text-gray-600 italic">
+		Each team has four players who select the best shot on each stroke, then all players play from
+		that position. This format is worth 2 points for a win, 1 point for a tie.
 	</div>
-	<div class="mb-2 text-center text-gray-600 text-lg font-semibold tracking-wide">
-		Points: <span class="inline-block px-2 py-1 rounded bg-gray-100 text-blue-700">{getMatchStatus()}</span>
+	<div class="mb-2 text-center text-lg font-semibold tracking-wide text-gray-600">
+		Points: <span class="inline-block rounded bg-gray-100 px-2 py-1 text-blue-700"
+			>{getMatchStatus()}</span
+		>
 	</div>
 	<div class="overflow-x-auto">
-		<table class="min-w-full border text-base rounded-lg shadow bg-white">
+		<table class="min-w-full rounded-lg border bg-white text-base shadow">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
-					<th class="border px-2 py-1 text-center text-blue-700 font-bold bg-blue-50">
+					<th class="sticky left-0 z-10 border bg-gray-100 px-2 py-1 text-center text-xs font-bold"
+						>Hole</th
+					>
+					<th class="border bg-blue-50 px-2 py-1 text-center font-bold text-blue-700">
 						Team A
-						<div class="text-xs mt-1">
+						<div class="mt-1 text-xs">
 							{#each safeTeamAPlayers.slice(0, 4) as player, i (player.player_id)}
-								{#if i > 0}, {/if}
-								{player.username || `Player ${i+1}`}
+								{#if i > 0},
+								{/if}
+								{player.username || `Player ${i + 1}`}
 							{/each}
 						</div>
 					</th>
-					<th class="border px-2 py-1 text-center text-green-700 font-bold bg-green-50">
+					<th class="border bg-green-50 px-2 py-1 text-center font-bold text-green-700">
 						Team B
-						<div class="text-xs mt-1">
+						<div class="mt-1 text-xs">
 							{#each safeTeamBPlayers.slice(0, 4) as player, i (player.player_id)}
-								{#if i > 0}, {/if}
-								{player.username || `Player ${i+1}`}
+								{#if i > 0},
+								{/if}
+								{player.username || `Player ${i + 1}`}
 							{/each}
 						</div>
 					</th>
-					<th class="border px-2 py-1 text-center font-bold bg-gray-100">Points</th>
+					<th class="border bg-gray-100 px-2 py-1 text-center font-bold">Points</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each safeHoles as hole (hole)}
 					<tr>
-						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
-						
+						<td class="sticky left-0 z-10 border bg-gray-50 px-2 py-1 text-center font-bold"
+							>{hole}</td
+						>
+
 						<!-- Team A Score -->
-						<td 
+						<td
 							class="border px-2 py-1 text-center"
 							class:bg-green-100={getWinningTeam(hole) === 'A'}
 							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
@@ -231,7 +236,7 @@
 									type="number"
 									min="1"
 									max="20"
-									class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none shadow-inner"
+									class="h-10 w-16 rounded border bg-blue-50 p-1 text-center text-lg font-semibold shadow-inner focus:bg-blue-100 focus:outline-none"
 									value={getTeamAScore(hole)}
 									on:input={(e) => handleScoreChange('A', hole, e)}
 								/>
@@ -249,9 +254,9 @@
 								{getTeamAScore(hole)}
 							{/if}
 						</td>
-						
+
 						<!-- Team B Score -->
-						<td 
+						<td
 							class="border px-2 py-1 text-center"
 							class:bg-green-100={getWinningTeam(hole) === 'B'}
 							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
@@ -261,7 +266,7 @@
 									type="number"
 									min="1"
 									max="20"
-									class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-green-50 focus:bg-green-100 focus:outline-none shadow-inner"
+									class="h-10 w-16 rounded border bg-green-50 p-1 text-center text-lg font-semibold shadow-inner focus:bg-green-100 focus:outline-none"
 									value={getTeamBScore(hole)}
 									on:input={(e) => handleScoreChange('B', hole, e)}
 								/>
@@ -279,7 +284,7 @@
 								{getTeamBScore(hole)}
 							{/if}
 						</td>
-						
+
 						<!-- Points Column -->
 						<td class="border px-2 py-1 text-center font-medium">
 							{#if getWinningTeam(hole) === 'A'}
@@ -292,12 +297,14 @@
 						</td>
 					</tr>
 				{/each}
-				
+
 				<!-- Totals row -->
 				<tr class="bg-gray-100">
-					<td class="border px-2 py-1 font-bold text-center bg-gray-200 sticky left-0 z-10">Total</td>
-					<td class="border px-2 py-1 text-center font-bold bg-blue-200">{getTeamTotal('A')}</td>
-					<td class="border px-2 py-1 text-center font-bold bg-green-200">{getTeamTotal('B')}</td>
+					<td class="sticky left-0 z-10 border bg-gray-200 px-2 py-1 text-center font-bold"
+						>Total</td
+					>
+					<td class="border bg-blue-200 px-2 py-1 text-center font-bold">{getTeamTotal('A')}</td>
+					<td class="border bg-green-200 px-2 py-1 text-center font-bold">{getTeamTotal('B')}</td>
 					<td class="border px-2 py-1 text-center font-bold">{getMatchStatus()}</td>
 				</tr>
 			</tbody>

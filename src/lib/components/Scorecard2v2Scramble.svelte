@@ -24,7 +24,10 @@
 	export let holes: number[] = [];
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
-	export let getSyncStatus: (playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined;
+	export let getSyncStatus: (
+		playerId: string | undefined,
+		hole: number
+	) => 'pending' | 'synced' | 'failed' | undefined;
 
 	// Defensive: make sure arrays are never undefined and players have scores
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -142,24 +145,27 @@
 	function getMatchStatus(): string {
 		let teamAUp = 0;
 		let teamBUp = 0;
-		
+
 		for (let hole of safeHoles) {
 			const winner = getWinningTeam(hole);
 			if (winner === 'A') teamAUp++;
 			else if (winner === 'B') teamBUp++;
 		}
-		
+
 		if (teamAUp === teamBUp) return 'AS';
 		if (teamAUp > teamBUp) return `${teamAUp - teamBUp}↑`;
 		return `${teamBUp - teamAUp}↓`;
 	}
-	
+
 	// Calculate team totals
 	function getTeamTotal(team: 'A' | 'B'): number {
 		let total = 0;
 		for (let hole of safeHoles) {
 			const score = team === 'A' ? getTeamAScore(hole) : getTeamBScore(hole);
-			if (typeof score === 'number' || (typeof score === 'string' && !isNaN(Number(score)) && score !== '')) {
+			if (
+				typeof score === 'number' ||
+				(typeof score === 'string' && !isNaN(Number(score)) && score !== '')
+			) {
 				total += Number(score);
 			}
 		}
@@ -168,30 +174,36 @@
 </script>
 
 <div class="mb-4">
-	<h2 class="text-lg font-bold text-center mb-2">2v2 Team Scramble Scorecard</h2>
-	<div class="mb-2 text-center text-gray-600 text-lg font-semibold tracking-wide">
-		Status: <span class="inline-block px-2 py-1 rounded bg-gray-100 text-blue-700">{getMatchStatus()}</span>
+	<h2 class="mb-2 text-center text-lg font-bold">2v2 Team Scramble Scorecard</h2>
+	<div class="mb-2 text-center text-lg font-semibold tracking-wide text-gray-600">
+		Status: <span class="inline-block rounded bg-gray-100 px-2 py-1 text-blue-700"
+			>{getMatchStatus()}</span
+		>
 	</div>
 	<div class="overflow-x-auto">
-		<table class="min-w-full border text-base rounded-lg shadow bg-white">
+		<table class="min-w-full rounded-lg border bg-white text-base shadow">
 			<thead class="bg-gray-50">
 				<tr>
-					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
+					<th class="sticky left-0 z-10 border bg-gray-100 px-2 py-1 text-center text-xs font-bold"
+						>Hole</th
+					>
 					<!-- Team A Header -->
-					<th class="border px-2 py-1 text-center text-blue-700 font-bold bg-blue-50" colspan="1">
+					<th class="border bg-blue-50 px-2 py-1 text-center font-bold text-blue-700" colspan="1">
 						Team A
 						{#if teamAPlayer1 || teamAPlayer2}
-							<div class="text-xs mt-1">
-								{teamAPlayer1?.username || ''} {teamAPlayer2 ? `& ${teamAPlayer2.username || ''}` : ''}
+							<div class="mt-1 text-xs">
+								{teamAPlayer1?.username || ''}
+								{teamAPlayer2 ? `& ${teamAPlayer2.username || ''}` : ''}
 							</div>
 						{/if}
 					</th>
 					<!-- Team B Header -->
-					<th class="border px-2 py-1 text-center text-green-700 font-bold bg-green-50" colspan="1">
+					<th class="border bg-green-50 px-2 py-1 text-center font-bold text-green-700" colspan="1">
 						Team B
 						{#if teamBPlayer1 || teamBPlayer2}
-							<div class="text-xs mt-1">
-								{teamBPlayer1?.username || ''} {teamBPlayer2 ? `& ${teamBPlayer2.username || ''}` : ''}
+							<div class="mt-1 text-xs">
+								{teamBPlayer1?.username || ''}
+								{teamBPlayer2 ? `& ${teamBPlayer2.username || ''}` : ''}
 							</div>
 						{/if}
 					</th>
@@ -200,11 +212,13 @@
 			<tbody>
 				{#each safeHoles as hole (hole)}
 					<tr>
-						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
-						
+						<td class="sticky left-0 z-10 border bg-gray-50 px-2 py-1 text-center font-bold"
+							>{hole}</td
+						>
+
 						<!-- Team A Score -->
-						<td 
-							class="border px-2 py-1 text-center" 
+						<td
+							class="border px-2 py-1 text-center"
 							class:bg-blue-100={getWinningTeam(hole) === 'A'}
 							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
 						>
@@ -213,7 +227,7 @@
 									type="number"
 									min="1"
 									max="20"
-									class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none shadow-inner"
+									class="h-10 w-16 rounded border bg-blue-50 p-1 text-center text-lg font-semibold shadow-inner focus:bg-blue-100 focus:outline-none"
 									value={getTeamAScore(hole)}
 									on:input={(e) => handleScoreChange('A', hole, e)}
 								/>
@@ -231,9 +245,9 @@
 								{getTeamAScore(hole)}
 							{/if}
 						</td>
-						
+
 						<!-- Team B Score -->
-						<td 
+						<td
 							class="border px-2 py-1 text-center"
 							class:bg-green-100={getWinningTeam(hole) === 'B'}
 							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
@@ -243,7 +257,7 @@
 									type="number"
 									min="1"
 									max="20"
-									class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-green-50 focus:bg-green-100 focus:outline-none shadow-inner"
+									class="h-10 w-16 rounded border bg-green-50 p-1 text-center text-lg font-semibold shadow-inner focus:bg-green-100 focus:outline-none"
 									value={getTeamBScore(hole)}
 									on:input={(e) => handleScoreChange('B', hole, e)}
 								/>
@@ -263,12 +277,14 @@
 						</td>
 					</tr>
 				{/each}
-				
+
 				<!-- Totals row -->
 				<tr class="bg-gray-100">
-					<td class="border px-2 py-1 font-bold text-center bg-gray-200 sticky left-0 z-10">Total</td>
-					<td class="border px-2 py-1 text-center font-bold bg-blue-200">{getTeamTotal('A')}</td>
-					<td class="border px-2 py-1 text-center font-bold bg-green-200">{getTeamTotal('B')}</td>
+					<td class="sticky left-0 z-10 border bg-gray-200 px-2 py-1 text-center font-bold"
+						>Total</td
+					>
+					<td class="border bg-blue-200 px-2 py-1 text-center font-bold">{getTeamTotal('A')}</td>
+					<td class="border bg-green-200 px-2 py-1 text-center font-bold">{getTeamTotal('B')}</td>
 				</tr>
 			</tbody>
 		</table>

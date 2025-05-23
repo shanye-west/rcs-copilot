@@ -5,16 +5,16 @@
 ```javascript
 // Before
 if (sessionStorage.getItem(handicapProcessedKey) === 'true' && playerScores.size > 0) {
-  return; // Skip processing if already done and we have data
+	return; // Skip processing if already done and we have data
 }
 
 // After
 if (playerScores.size > 0) {
-  return; // Skip processing if we already have data
+	return; // Skip processing if we already have data
 }
 ```
 
-## Fix 2: Remove sessionStorage setItem for handicapProcessedKey 
+## Fix 2: Remove sessionStorage setItem for handicapProcessedKey
 
 ```javascript
 // Before
@@ -23,7 +23,7 @@ sessionStorage.setItem(handicapProcessedKey, 'true');
 
 // After
 // Don't mark as processed, let it recalculate on refresh
-console.log("Handicap strokes calculated");
+console.log('Handicap strokes calculated');
 ```
 
 ## Fix 3: Remove sessionStorage check from handicap initialization
@@ -31,10 +31,10 @@ console.log("Handicap strokes calculated");
 ```javascript
 // Before
 const handicapsInitialized = sessionStorage.getItem(handicapKey);
-    
+
 if (handicapsInitialized === 'true') {
-  console.log("Handicaps already initialized, skipping...");
-  return;
+	console.log('Handicaps already initialized, skipping...');
+	return;
 }
 
 // After
@@ -49,7 +49,7 @@ if (handicapsInitialized === 'true') {
 sessionStorage.setItem(handicapKey, 'true');
 
 // After
-console.log("Handicap loading complete");
+console.log('Handicap loading complete');
 ```
 
 ## Fix 5: Remove sessionStorage check from fallback mechanism (already done)
@@ -62,5 +62,5 @@ console.log("Handicap loading complete");
 sessionStorage.setItem(fallbackKey, 'true');
 
 // After
-console.log("Fallback scores loaded");
+console.log('Fallback scores loaded');
 ```

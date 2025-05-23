@@ -59,20 +59,20 @@
 
 <div class="flex min-h-screen items-center justify-center bg-slate-50">
 	<Card class="w-full max-w-md p-8">
-		<div class="text-center mb-8">
+		<div class="mb-8 text-center">
 			<h1 class="heading-lg mb-2">Rowdy Cup</h1>
 			<p class="text-blue-600">Tournament Management</p>
 		</div>
 
 		{#if error}
-			<div class="mb-6 rounded-md bg-red-50 p-4 text-red-700 border-l-4 border-red-500">
+			<div class="mb-6 rounded-md border-l-4 border-red-500 bg-red-50 p-4 text-red-700">
 				{error}
 			</div>
 		{/if}
 
 		<form on:submit|preventDefault={handleLogin} class="space-y-6">
 			<div>
-				<label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+				<label for="username" class="mb-1 block text-sm font-medium text-gray-700">Username</label>
 				<Input
 					id="username"
 					bind:value={username}
@@ -82,7 +82,7 @@
 			</div>
 
 			<div>
-				<label for="pin" class="block text-sm font-medium text-gray-700 mb-1">PIN</label>
+				<label for="pin" class="mb-1 block text-sm font-medium text-gray-700">PIN</label>
 				<Input
 					type="password"
 					id="pin"
@@ -94,12 +94,7 @@
 				/>
 			</div>
 
-			<Button
-				type="submit"
-				variant="primary"
-				fullWidth={true}
-				disabled={loading}
-			>
+			<Button type="submit" variant="primary" fullWidth={true} disabled={loading}>
 				{loading ? 'Logging in...' : 'Login'}
 			</Button>
 		</form>

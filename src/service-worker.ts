@@ -31,7 +31,7 @@ sw.addEventListener('install', (event) => {
 				console.log('Caching static assets:', STATIC_ASSETS.length, 'files');
 				await staticCache.addAll(STATIC_ASSETS);
 				console.log('Static assets cached successfully');
-				
+
 				// Skip waiting to activate the new service worker immediately
 				await sw.skipWaiting();
 			} catch (error) {
@@ -83,7 +83,7 @@ function isNavigationRequest(request: Request): boolean {
 // Helper function to determine if an asset request
 function isAssetRequest(request: Request): boolean {
 	const url = new URL(request.url);
-	return STATIC_ASSETS.some(asset => url.pathname === asset);
+	return STATIC_ASSETS.some((asset) => url.pathname === asset);
 }
 
 // Helper function for image requests
@@ -150,7 +150,7 @@ sw.addEventListener('fetch', (event) => {
 						}
 
 						// Final fallback
-						return new Response('You are offline', { 
+						return new Response('You are offline', {
 							status: 503,
 							headers: { 'Content-Type': 'text/plain' }
 						});
@@ -198,7 +198,6 @@ sw.addEventListener('fetch', (event) => {
 
 				// Default - try network, don't cache
 				return await fetch(request);
-
 			} catch (error) {
 				console.error('Fetch event error:', error);
 				return new Response('Service unavailable', { status: 503 });

@@ -245,11 +245,15 @@ describe('Offline Store', () => {
 		const finalState = get(offlineStore);
 
 		// Only the most recent for each key should remain
-		const deduped = finalState.scores.filter(s => s.player_id === 'p1' && s.hole_number === 1 && s.match_id === 'm1');
+		const deduped = finalState.scores.filter(
+			(s) => s.player_id === 'p1' && s.hole_number === 1 && s.match_id === 'm1'
+		);
 		expect(deduped).toHaveLength(1);
 		expect(deduped[0].score).toBe(6);
 		// The other key should still be present
-		const other = finalState.scores.find(s => s.player_id === 'p2' && s.hole_number === 2 && s.match_id === 'm2');
+		const other = finalState.scores.find(
+			(s) => s.player_id === 'p2' && s.hole_number === 2 && s.match_id === 'm2'
+		);
 		expect(other).toBeDefined();
 
 		// Restore process
@@ -260,12 +264,18 @@ describe('Offline Store', () => {
 describe('deduplication helper', () => {
 	test('should deduplicate and keep only the most recent score for each player/hole/match', () => {
 		// This test directly tests the deduplication logic used in cleanupSyncedScores (production path)
-		type TestScore = { player_id: string; hole_number: number; match_id: string; timestamp: number; synced: boolean };
+		type TestScore = {
+			player_id: string;
+			hole_number: number;
+			match_id: string;
+			timestamp: number;
+			synced: boolean;
+		};
 		const scores: TestScore[] = [
 			{ player_id: 'p1', hole_number: 1, match_id: 'm1', timestamp: 100, synced: false },
 			{ player_id: 'p1', hole_number: 1, match_id: 'm1', timestamp: 200, synced: false }, // newer
 			{ player_id: 'p2', hole_number: 2, match_id: 'm2', timestamp: 150, synced: false },
-			{ player_id: 'p2', hole_number: 2, match_id: 'm2', timestamp: 120, synced: false }, // older
+			{ player_id: 'p2', hole_number: 2, match_id: 'm2', timestamp: 120, synced: false } // older
 		];
 		// Deduplication logic (copied from offline-store.ts)
 		const latestByKey: Record<string, TestScore> = {};
