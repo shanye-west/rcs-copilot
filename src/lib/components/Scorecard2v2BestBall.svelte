@@ -92,122 +92,195 @@
 		if (numericScores.length === 0) return '';
 		return Math.min(...numericScores);
 	}
+
+	// Calculate the total score for each team
+	function getTeamTotal(players: Player[]): number {
+		let total = 0;
+		holes.forEach(hole => {
+			const bestScore = getBestNetScore(players, hole);
+			if (typeof bestScore === 'number') {
+				total += bestScore;
+			}
+		});
+		return total;
+	}
+	
+	// Calculate match status for the 2v2 match
+	function getMatchStatus(): string {
+		let teamAUp = 0;
+		let teamBUp = 0;
+		
+		for (let hole of holes) {
+			const teamAScore = getBestNetScore(teamAPlayers, hole);
+			const teamBScore = getBestNetScore(teamBPlayers, hole);
+			
+			if (teamAScore === '' || teamBScore === '') continue;
+			
+			if (teamAScore < teamBScore) teamAUp++;
+			else if (teamBScore < teamAScore) teamBUp++;
+		}
+		
+		if (teamAUp === teamBUp) return 'AS';
+		if (teamAUp > teamBUp) return `${teamAUp - teamBUp}↑`;
+		return `${teamBUp - teamAUp}↓`;
+	}
+	
+	// Optional function for sync status (to match the 1v1 scorecard)
+	export let getSyncStatus: ((playerId: string | undefined, hole: number) => 'pending' | 'synced' | 'failed' | undefined) | undefined = undefined;
 </script>
 
 <div class="mb-4">
-	<h2 class="text-lg font-bold">2v2 Team Best Ball Scorecard</h2>
-	<table class="min-w-full border text-sm">
-		<thead>
-			<tr>
-				<th class="border px-2 py-1">Hole</th>
-				{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
-					<th class="border px-2 py-1">
-						{#if p && p.player && p.player.username}
-							{p.player.username}
-						{:else if p && p.username}
-							{p.username}
-						{:else}
-							Player {p ? p.player_id : 'Unknown'}
-						{/if}
-					</th>
-				{/each}
-				<th class="border bg-blue-50 px-2 py-1">Best Ball (A)</th>
-				{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
-					<th class="border px-2 py-1">
-						{#if p && p.player && p.player.username}
-							{p.player.username}
-						{:else if p && p.username}
-							{p.username}
-						{:else}
-							Player {p ? p.player_id : 'Unknown'}
-						{/if}
-					</th>
-				{/each}
-				<th class="border bg-red-50 px-2 py-1">Best Ball (B)</th>
-			</tr>
-			<tr>
-				<th class="border px-2 py-1 text-xs text-gray-400">Dots</th>
-				{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
-					{#each holes as hole (hole)}
-						{#if hole === 1}
-							<th class="border px-2 py-1 text-xs text-gray-400" colspan={holes.length}>
-								{#if p && p.player}
-									{holes.map((h) => getDots(p.player, h)).join(' ')}
-								{:else}
-									-
-								{/if}
-							</th>
-						{/if}
-					{/each}
-				{/each}
-				<th class="border px-2 py-1"></th>
-				{#each teamBPlayers as p (p.player_id)}
-					{#each holes as hole (hole)}
-						{#if hole === 1}
-							<th class="border px-2 py-1 text-xs text-gray-400" colspan={holes.length}
-								>{holes.map((h) => getDots(p.player, h)).join(' ')}</th
-							>
-						{/if}
-					{/each}
-				{/each}
-				<th class="border px-2 py-1"></th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each holes as hole (hole)}
+	<h2 class="text-lg font-bold text-center mb-2">2v2 Team Best Ball Scorecard</h2>
+	<div class="mb-2 text-center text-gray-600 text-lg font-semibold tracking-wide">
+		Status: <span class="inline-block px-2 py-1 rounded bg-gray-100 text-blue-700">{getMatchStatus()}</span>
+	</div>
+	<div class="overflow-x-auto">
+		<table class="min-w-full border text-base rounded-lg shadow bg-white">
+			<thead class="bg-gray-50">
 				<tr>
-					<td class="border px-2 py-1 font-bold">{hole}</td>
-					{#each teamAPlayers as p (p.player_id)}
-						<td class="border px-2 py-1">
-							{#if !isLocked}
-								<input
-									type="number"
-									min="1"
-									max="20"
-									class="w-12 rounded border p-1 text-center"
-									bind:value={p.scores[hole]}
-									on:change={() => saveScore(p.player.id, hole, p.scores[hole])}
-								/>
-								<!-- Sync status indicator -->
-								{#if typeof getSyncStatus === 'function'}
-									{#if getSyncStatus(p.player.id, hole) === 'pending'}
-										<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-									{:else if getSyncStatus(p.player.id, hole) === 'synced'}
-										<span title="Synced" class="ml-1 text-green-600">✔️</span>
-									{:else if getSyncStatus(p.player.id, hole) === 'failed'}
-										<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
-									{/if}
-								{/if}
+					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
+					{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
+						<th class="border px-2 py-1 text-center text-blue-700 font-bold bg-blue-50">
+							{#if p && p.player && p.player.username}
+								{p.player.username}
+							{:else if p && p.username}
+								{p.username}
 							{:else}
-								{getScore(p.player.id, hole)}
+								Player {p ? p.player_id : 'Unknown'}
 							{/if}
-							<div class="text-xs text-gray-400">{getDots(p.player, hole)}</div>
-						</td>
+						</th>
 					{/each}
-					<td class="border bg-blue-50 px-2 py-1 font-bold"
-						>{getBestNetScore(teamAPlayers, hole)}</td
-					>
-					{#each teamBPlayers as p (p.player_id)}
-						<td class="border px-2 py-1">
-							{#if !isLocked}
-								<input
-									type="number"
-									min="1"
-									max="20"
-									class="w-12 rounded border p-1 text-center"
-									bind:value={p.scores[hole]}
-									on:change={() => saveScore(p.player.id, hole, p.scores[hole])}
-								/>
+					<th class="border px-2 py-1 text-center font-bold bg-blue-100">Team A Best Ball</th>
+					{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
+						<th class="border px-2 py-1 text-center text-green-700 font-bold bg-green-50">
+							{#if p && p.player && p.player.username}
+								{p.player.username}
+							{:else if p && p.username}
+								{p.username}
 							{:else}
-								{getScore(p.player.id, hole)}
+								Player {p ? p.player_id : 'Unknown'}
 							{/if}
-							<div class="text-xs text-gray-400">{getDots(p.player, hole)}</div>
-						</td>
+						</th>
 					{/each}
-					<td class="border bg-red-50 px-2 py-1 font-bold">{getBestNetScore(teamBPlayers, hole)}</td
-					>
+					<th class="border px-2 py-1 text-center font-bold bg-green-100">Team B Best Ball</th>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+				<tr>
+					<th class="border px-2 py-1 text-xs text-gray-400 bg-gray-100 sticky left-0 z-10">Handicap</th>
+					{#each teamAPlayers.slice(0, 2) as p (p.player_id)}
+						<th class="border px-2 py-1 text-xs text-blue-500 bg-blue-50">
+							{#if p && p.player}
+								{holes.map((h) => getDots(p.player, h)).join(' ')}
+							{:else}
+								-
+							{/if}
+						</th>
+					{/each}
+					<th class="border px-2 py-1 bg-blue-100"></th>
+					{#each teamBPlayers.slice(0, 2) as p (p.player_id)}
+						<th class="border px-2 py-1 text-xs text-green-600 bg-green-50">
+							{holes.map((h) => getDots(p.player, h)).join(' ')}
+						</th>
+					{/each}
+					<th class="border px-2 py-1 bg-green-100"></th>
+				</tr>
+			</thead>
+			<tbody>
+				{#each holes as hole (hole)}
+					<tr>
+						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
+						{#each teamAPlayers as p (p.player_id)}
+							<td class="border px-2 py-1 text-center">
+								{#if !isLocked}
+									<input
+										type="number"
+										min="1"
+										max="20"
+										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none shadow-inner"
+										value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
+										on:input={e => {
+											const target = e.target as HTMLInputElement;
+											const val = target.value;
+											if (p.scores) p.scores[hole] = val;
+										}}
+										on:change={() => {
+											if (p.scores && p.scores[hole] !== '') {
+												saveScore(p.player.id, hole, Number(p.scores[hole]));
+											}
+										}}
+									/>
+									<!-- Sync status indicator -->
+									{#if typeof getSyncStatus === 'function'}
+										{#if getSyncStatus(p.player.id, hole) === 'pending'}
+											<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+										{:else if getSyncStatus(p.player.id, hole) === 'synced'}
+											<span title="Synced" class="ml-1 text-green-600">✔️</span>
+										{:else if getSyncStatus(p.player.id, hole) === 'failed'}
+											<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+										{/if}
+									{/if}
+								{:else}
+									{getScore(p.player.id, hole)}
+								{/if}
+								<div class="text-xs text-gray-400 mt-1">{getDots(p.player, hole)}</div>
+							</td>
+						{/each}
+						<td class="border px-2 py-1 text-center font-bold bg-blue-100">
+							{getBestNetScore(teamAPlayers, hole)}
+						</td>
+						{#each teamBPlayers as p (p.player_id)}
+							<td class="border px-2 py-1 text-center">
+								{#if !isLocked}
+									<input
+										type="number"
+										min="1"
+										max="20"
+										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-green-50 focus:bg-green-100 focus:outline-none shadow-inner"
+										value={p.scores && p.scores[hole] !== undefined ? p.scores[hole] : ''}
+										on:input={e => {
+											const target = e.target as HTMLInputElement;
+											const val = target.value;
+											if (p.scores) p.scores[hole] = val;
+										}}
+										on:change={() => {
+											if (p.scores && p.scores[hole] !== '') {
+												saveScore(p.player.id, hole, Number(p.scores[hole]));
+											}
+										}}
+									/>
+									<!-- Sync status indicator -->
+									{#if typeof getSyncStatus === 'function'}
+										{#if getSyncStatus(p.player.id, hole) === 'pending'}
+											<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+										{:else if getSyncStatus(p.player.id, hole) === 'synced'}
+											<span title="Synced" class="ml-1 text-green-600">✔️</span>
+										{:else if getSyncStatus(p.player.id, hole) === 'failed'}
+											<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+										{/if}
+									{/if}
+								{:else}
+									{getScore(p.player.id, hole)}
+								{/if}
+								<div class="text-xs text-gray-400 mt-1">{getDots(p.player, hole)}</div>
+							</td>
+						{/each}
+						<td class="border px-2 py-1 text-center font-bold bg-green-100">
+							{getBestNetScore(teamBPlayers, hole)}
+						</td>
+					</tr>
+				{/each}
+				<!-- Totals row -->
+				<tr class="bg-gray-100">
+					<td class="border px-2 py-1 font-bold text-center bg-gray-200 sticky left-0 z-10">Total</td>
+					{#each teamAPlayers as p (p.player_id)}
+						<td class="border px-2 py-1 text-center"></td>
+					{/each}
+					<td class="border px-2 py-1 text-center font-bold bg-blue-200">{getTeamTotal(teamAPlayers)}</td>
+					{#each teamBPlayers as p (p.player_id)}
+						<td class="border px-2 py-1 text-center"></td>
+					{/each}
+					<td class="border px-2 py-1 text-center font-bold bg-green-200">{getTeamTotal(teamBPlayers)}</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
 </div>

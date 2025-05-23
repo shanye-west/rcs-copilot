@@ -34,6 +34,7 @@
       email: string;
       isAdmin?: boolean;
     } | null;
+    isLoading: boolean;
   }
 
   // Reactive data
@@ -56,8 +57,8 @@
   };
 
   // Subscribe to auth store
-  let authState: any;
-  const unsubscribe = auth.subscribe((state) => {
+  let authState: AuthState;
+  const unsubscribe = auth.subscribe((state: AuthState) => {
     authState = state;
   });
 
@@ -205,16 +206,12 @@
   }
 
   // Get sync status for a score
-  function getSyncStatus(playerId: string | undefined, hole: number): 'pending' | 'synced' | 'failed' | undefined {
+  function getSyncStatus(playerId: string | undefined, hole: number) {
     if (!playerId || !hole) return undefined;
     const status = $offlineStore.scores.find(
       (s: OfflineScore) => s.player_id === playerId && s.hole_number === hole && s.match_id === match.id
     );
-    
-    if (!status) return undefined;
-    if (status.synced) return 'synced';
-    if (status.retry_count > 2) return 'failed';
-    return 'pending';
+    return status?.status; // Changed from syncStatus to status
   }
 
   // Calculate totals
@@ -390,36 +387,9 @@
     {/if}
 
     <!-- Dynamic Scorecard -->
-    {#if matchType.id === '4v4-team-scramble'}
-      <Scorecard4v4TeamScramble
-        {teamAPlayers}
-        {teamBPlayers}
-        {holes}
-        {isLocked}
-        {saveScore}
-        {getSyncStatus}
-      />
-    {:else if matchType.id === '2v2-best-ball'}
-      <Scorecard2v2BestBall
-        {teamAPlayers}
-        {teamBPlayers}
-        {scores}
-        {holes}
-        {isLocked}
-        {saveScore}
-        {getSyncStatus}
-      />
-    {:else if matchType.id === '2v2-scramble'}
-      <Scorecard2v2Scramble
-        {teamAPlayers}
-        {teamBPlayers}
-        {holes}
-        {isLocked}
-        {saveScore}
-        {getSyncStatus}
-      />
-    {:else if matchType.id === '2v2-shamble'}
-      <Scorecard2v2Shamble
+    {#if ScorecardComponent}
+      <svelte:component 
+        this={ScorecardComponent}
         {teamAPlayers}
         {teamBPlayers}
         {holes}
@@ -428,13 +398,9 @@
         {getSyncStatus}
       />
     {:else}
-      <Scorecard1v1
-        players={[...teamAPlayers, ...teamBPlayers]}
-        scores={scores}
-        {holes}
-        {isLocked}
-        saveScore={(playerId, hole, value) => saveScore(playerId, hole, value)}
-      />
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center text-gray-500">
+        Loading scorecard...
+      </div>
     {/if}
 
     <!-- Admin Controls -->

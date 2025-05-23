@@ -1,11 +1,13 @@
 <!-- src/routes/+layout.svelte -->
 <script lang="ts">
   import '../app.css';
+  import '../app.postcss';
+  import '$lib/styles/sportsbook.css';
   import { onMount } from 'svelte';
   import { auth } from '$lib/stores/auth';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import '../app.postcss';
+  
 
   let menuOpen = false;
 
@@ -23,6 +25,7 @@
   $: isTeams = currentPath.includes('/teams');
   $: isHistory = currentPath.includes('/history');
   $: isLogin = currentPath.includes('/login');
+  $: isSportsbook = currentPath.includes('/sportsbook') || currentPath.includes('/my-bets');
 </script>
 
 <div class="min-h-screen bg-gray-50">
@@ -48,6 +51,12 @@
             class="px-4 py-2 rounded-lg font-medium transition-colors {isTeams ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'text-gray-600 hover:text-gray-900'}"
           >
             Teams
+          </button>
+          <button 
+            on:click={() => navigateTo('/sportsbook')}
+            class="px-4 py-2 rounded-lg font-medium transition-colors {isSportsbook ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'text-gray-600 hover:text-gray-900'}"
+          >
+            Sportsbook
           </button>
           <button 
             on:click={() => navigateTo('/history')}
@@ -166,6 +175,18 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
           <span class="text-xs font-medium">Teams</span>
+        </div>
+      </button>
+      
+      <button 
+        on:click={() => navigateTo('/sportsbook')}
+        class="flex-1 py-3 px-2 text-center {isSportsbook ? 'text-blue-600' : 'text-gray-400'}"
+      >
+        <div class="flex flex-col items-center">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-xs font-medium">Bets</span>
         </div>
       </button>
       

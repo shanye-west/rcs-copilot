@@ -30,6 +30,7 @@
 	export let holes: number[] = [];
 	export let isLocked = false;
 	export let saveScore: (playerId: string, hole: number, value: number | null) => void;
+	export let getSyncStatus: ((playerId: string, hole: number) => 'pending' | 'synced' | 'failed' | undefined) | undefined;
 
 	// Defensive: make sure arrays are never undefined
 	$: safeTeamAPlayers = teamAPlayers || [];
@@ -96,6 +97,42 @@
 		return 'tie';
 	}
 
+	// Calculate match status based on holes won
+	function getMatchStatus(): string {
+		let teamAUp = 0;
+		let teamBUp = 0;
+		
+		for (let hole of safeHoles) {
+			const winner = getWinningTeam(hole);
+			if (winner === 'A') teamAUp++;
+			else if (winner === 'B') teamBUp++;
+		}
+		
+		if (teamAUp === teamBUp) return 'AS';
+		if (teamAUp > teamBUp) return `${teamAUp - teamBUp}↑`;
+		return `${teamBUp - teamAUp}↓`;
+	}
+	
+	// Calculate team total scores
+	function getTeamTotal(teamPlayers: Player[]): number {
+		let total = 0;
+		
+		// For each hole, find the best (lowest) score from either player
+		for (let hole of safeHoles) {
+			const scores = teamPlayers.map(p => getPlayerScore(p, hole))
+				.filter(score => score !== '')
+				.map(score => Number(score))
+				.filter(score => !isNaN(score));
+				
+			if (scores.length > 0) {
+				const bestScore = Math.min(...scores);
+				total += bestScore;
+			}
+		}
+		
+		return total;
+	}
+
 	// Handle score change
 	function handleScoreChange(teamId: string, playerIndex: number, hole: number, e: Event) {
 		if (isLocked) return;
@@ -155,91 +192,143 @@
 	}
 </script>
 
-<div class="scoreboard overflow-x-auto">
-	<div class="mb-4">
-		<h2 class="text-lg font-bold">2v2 Team Shamble Scorecard</h2>
-		<p class="text-sm text-gray-500">
-			Players select the best drive, then play their own ball for the remainder of the hole.
-		</p>
+<div class="mb-4">
+	<h2 class="text-lg font-bold text-center mb-2">2v2 Team Shamble Scorecard</h2>
+	<div class="mb-2 text-center text-gray-600 text-sm italic">
+		Players select the best drive, then play their own ball for the remainder of the hole.
 	</div>
-	
-	<table class="min-w-full border-collapse">
-		<thead>
-			<tr>
-				<th class="sticky left-0 border bg-white px-2 py-1">Player</th>
+	<div class="mb-2 text-center text-gray-600 text-lg font-semibold tracking-wide">
+		Status: <span class="inline-block px-2 py-1 rounded bg-gray-100 text-blue-700">{getMatchStatus()}</span>
+	</div>
+	<div class="overflow-x-auto">
+		<table class="min-w-full border text-base rounded-lg shadow bg-white">
+			<thead class="bg-gray-50">
+				<tr>
+					<th class="border px-2 py-1 text-center text-xs font-bold bg-gray-100 sticky left-0 z-10">Hole</th>
+					{#each safeTeamAPlayers as player, index (player.player_id)}
+						<th class="border px-2 py-1 text-center text-blue-700 font-bold bg-blue-50">
+							A{index + 1}: {player.username || player.player?.username || 'Player'}
+						</th>
+					{/each}
+					<th class="border px-2 py-1 text-center font-bold bg-blue-100">Team A Best</th>
+					{#each safeTeamBPlayers as player, index (player.player_id)}
+						<th class="border px-2 py-1 text-center text-green-700 font-bold bg-green-50">
+							B{index + 1}: {player.username || player.player?.username || 'Player'}
+						</th>
+					{/each}
+					<th class="border px-2 py-1 text-center font-bold bg-green-100">Team B Best</th>
+				</tr>
+			</thead>
+			<tbody>
 				{#each safeHoles as hole (hole)}
-					<th class="w-12 border px-2 py-1">{hole}</th>
+					<tr>
+						<td class="border px-2 py-1 font-bold text-center bg-gray-50 sticky left-0 z-10">{hole}</td>
+						
+						<!-- Team A Players -->
+						{#each safeTeamAPlayers as player, index (player.player_id)}
+							<td class="border px-2 py-1 text-center">
+								{#if !isLocked}
+									<input
+										type="number"
+										min="1"
+										max="20"
+										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-blue-50 focus:bg-blue-100 focus:outline-none shadow-inner"
+										value={getPlayerScore(player, hole)}
+										on:input={(e) => handleScoreChange('A', index, hole, e)}
+									/>
+									<!-- Sync status indicator -->
+									{#if typeof getSyncStatus === 'function'}
+										{#if getSyncStatus(player.player_id, hole) === 'pending'}
+											<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+										{:else if getSyncStatus(player.player_id, hole) === 'synced'}
+											<span title="Synced" class="ml-1 text-green-600">✔️</span>
+										{:else if getSyncStatus(player.player_id, hole) === 'failed'}
+											<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+										{/if}
+									{/if}
+								{:else}
+									{getPlayerScore(player, hole)}
+								{/if}
+							</td>
+						{/each}
+						
+						<!-- Team A Best Score -->
+						<td 
+							class="border px-2 py-1 text-center font-bold bg-blue-100"
+							class:bg-green-200={getWinningTeam(hole) === 'A'}
+							class:bg-yellow-200={getWinningTeam(hole) === 'tie'}
+						>
+							{safeTeamAPlayers.map(p => getPlayerScore(p, hole))
+								.filter(score => score !== '')
+								.map(score => Number(score))
+								.filter(score => !isNaN(score)).length > 0 
+									? Math.min(...safeTeamAPlayers.map(p => getPlayerScore(p, hole))
+										.filter(score => score !== '')
+										.map(score => Number(score))
+										.filter(score => !isNaN(score))) 
+									: ''}
+						</td>
+						
+						<!-- Team B Players -->
+						{#each safeTeamBPlayers as player, index (player.player_id)}
+							<td class="border px-2 py-1 text-center">
+								{#if !isLocked}
+									<input
+										type="number"
+										min="1"
+										max="20"
+										class="w-16 h-10 rounded border p-1 text-center text-lg font-semibold bg-green-50 focus:bg-green-100 focus:outline-none shadow-inner"
+										value={getPlayerScore(player, hole)}
+										on:input={(e) => handleScoreChange('B', index, hole, e)}
+									/>
+									<!-- Sync status indicator -->
+									{#if typeof getSyncStatus === 'function'}
+										{#if getSyncStatus(player.player_id, hole) === 'pending'}
+											<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
+										{:else if getSyncStatus(player.player_id, hole) === 'synced'}
+											<span title="Synced" class="ml-1 text-green-600">✔️</span>
+										{:else if getSyncStatus(player.player_id, hole) === 'failed'}
+											<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
+										{/if}
+									{/if}
+								{:else}
+									{getPlayerScore(player, hole)}
+								{/if}
+							</td>
+						{/each}
+						
+						<!-- Team B Best Score -->
+						<td 
+							class="border px-2 py-1 text-center font-bold bg-green-100"
+							class:bg-green-200={getWinningTeam(hole) === 'B'}
+							class:bg-yellow-200={getWinningTeam(hole) === 'tie'}
+						>
+							{safeTeamBPlayers.map(p => getPlayerScore(p, hole))
+								.filter(score => score !== '')
+								.map(score => Number(score))
+								.filter(score => !isNaN(score)).length > 0 
+									? Math.min(...safeTeamBPlayers.map(p => getPlayerScore(p, hole))
+										.filter(score => score !== '')
+										.map(score => Number(score))
+										.filter(score => !isNaN(score))) 
+									: ''}
+						</td>
+					</tr>
 				{/each}
-			</tr>
-		</thead>
-		<tbody>
-			<!-- Team A Players -->
-			{#each safeTeamAPlayers as player, index (player.player_id)}
-				<tr class="bg-blue-50">
-					<td class="sticky left-0 border bg-blue-50 px-2 py-1 font-semibold">
-						<span class="text-blue-800">A{index + 1}:</span> {player.username || 'Player'}
-					</td>
-					{#each safeHoles as hole (hole)}
-						<td
-							class="border px-1 py-1 text-center"
-							class:bg-green-100={getWinningTeam(hole) === 'A'}
-							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
-						>
-							<input
-								type="text"
-								class="w-full bg-transparent text-center"
-								value={getPlayerScore(player, hole)}
-								disabled={isLocked}
-								on:input={(e) => handleScoreChange('A', index, hole, e)}
-							/>
-							<!-- Sync status indicator -->
-							{#if typeof getSyncStatus === 'function'}
-								{#if getSyncStatus(player.player_id, hole) === 'pending'}
-									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'synced'}
-									<span title="Synced" class="ml-1 text-green-600">✔️</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'failed'}
-									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
-								{/if}
-							{/if}
-						</td>
+				
+				<!-- Totals row -->
+				<tr class="bg-gray-100">
+					<td class="border px-2 py-1 font-bold text-center bg-gray-200 sticky left-0 z-10">Total</td>
+					{#each safeTeamAPlayers as player, index (player.player_id)}
+						<td class="border px-2 py-1 text-center"></td>
 					{/each}
-				</tr>
-			{/each}
-
-			<!-- Team B Players -->
-			{#each safeTeamBPlayers as player, index (player.player_id)}
-				<tr class="bg-green-50">
-					<td class="sticky left-0 border bg-green-50 px-2 py-1 font-semibold">
-						<span class="text-green-800">B{index + 1}:</span> {player.username || 'Player'}
-					</td>
-					{#each safeHoles as hole (hole)}
-						<td
-							class="border px-1 py-1 text-center"
-							class:bg-green-100={getWinningTeam(hole) === 'B'}
-							class:bg-yellow-100={getWinningTeam(hole) === 'tie'}
-						>
-							<input
-								type="text"
-								class="w-full bg-transparent text-center"
-								value={getPlayerScore(player, hole)}
-								disabled={isLocked}
-								on:input={(e) => handleScoreChange('B', index, hole, e)}
-							/>
-							<!-- Sync status indicator -->
-							{#if typeof getSyncStatus === 'function'}
-								{#if getSyncStatus(player.player_id, hole) === 'pending'}
-									<span title="Pending sync" class="ml-1 text-yellow-500">⏳</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'synced'}
-									<span title="Synced" class="ml-1 text-green-600">✔️</span>
-								{:else if getSyncStatus(player.player_id, hole) === 'failed'}
-									<span title="Sync failed" class="ml-1 text-red-600">⚠️</span>
-								{/if}
-							{/if}
-						</td>
+					<td class="border px-2 py-1 text-center font-bold bg-blue-200">{getTeamTotal(safeTeamAPlayers)}</td>
+					{#each safeTeamBPlayers as player, index (player.player_id)}
+						<td class="border px-2 py-1 text-center"></td>
 					{/each}
+					<td class="border px-2 py-1 text-center font-bold bg-green-200">{getTeamTotal(safeTeamBPlayers)}</td>
 				</tr>
-			{/each}
-		</tbody>
-	</table>
+			</tbody>
+		</table>
+	</div>
 </div>
