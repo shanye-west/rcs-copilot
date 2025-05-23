@@ -1,202 +1,205 @@
-/* Add to src/app.postcss */
+/* Update your src/app.postcss to match the screenshot styling */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Golf-specific color palette */
+/* Rowdy Cup Brand Colors (matching screenshots) */
 :root {
-  --golf-green-primary: #16a34a;
-  --golf-green-secondary: #22c55e;
-  --golf-blue-primary: #1e40af;
-  --golf-blue-secondary: #3b82f6;
-  --golf-sand: #fbbf24;
-  --golf-water: #0ea5e9;
-  --course-green: #166534;
-  --sunset-orange: #ea580c;
+  --rowdy-navy: #1e3a8a;        /* Aviators navy blue */
+  --rowdy-red: #dc2626;         /* Producers red */
+  --rowdy-blue: #3b82f6;        /* Accent blue */
+  --rowdy-gray: #6b7280;        /* Text gray */
+  --rowdy-light-gray: #f9fafb;  /* Background gray */
 }
 
-/* Custom components for golf app */
-@layer components {
-  .golf-gradient {
-    @apply bg-gradient-to-r from-green-600 via-blue-600 to-purple-600;
-  }
-  
-  .golf-card {
-    @apply bg-white rounded-2xl shadow-lg overflow-hidden;
-  }
-  
-  .golf-button-primary {
-    @apply bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition-all hover:scale-105;
-  }
-  
-  .golf-button-secondary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-2xl shadow-lg transition-all hover:scale-105;
-  }
-  
-  .score-button {
-    @apply w-12 h-12 rounded-xl font-bold text-lg transition-all hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
-  }
-  
-  .score-button-active {
-    @apply shadow-lg scale-105 ring-2;
-  }
-  
-  .team-header {
-    @apply text-white p-4 font-bold;
-  }
-  
-  .hole-dot {
-    @apply w-8 h-8 rounded-full text-xs font-bold transition-all flex-shrink-0 flex items-center justify-center;
-  }
-  
-  .hole-dot-active {
-    @apply scale-125 shadow-lg;
-  }
-  
-  .swipe-hint {
-    @apply text-center text-xs text-gray-500 mt-2;
-  }
-}
-
-/* Mobile-first responsive design */
-@media (max-width: 640px) {
-  .mobile-padding {
-    @apply px-4;
-  }
-  
-  .mobile-text {
-    @apply text-sm;
-  }
-  
-  .fat-finger {
-    @apply min-h-[44px] min-w-[44px]; /* iOS recommended minimum touch target */
-  }
-}
-
-/* Golf score colors */
-.score-eagle {
-  @apply bg-yellow-400 text-yellow-900 ring-2 ring-yellow-500;
-}
-
-.score-birdie {
-  @apply bg-red-500 text-white ring-2 ring-red-600;
-}
-
-.score-par {
-  @apply bg-green-100 text-green-900 ring-2 ring-green-300;
-}
-
-.score-bogey {
-  @apply bg-blue-100 text-blue-900 ring-2 ring-blue-300;
-}
-
-.score-double-plus {
-  @apply bg-red-100 text-red-900 ring-2 ring-red-300;
-}
-
-/* Team colors */
-.team-aviators {
-  @apply bg-blue-600;
-}
-
-.team-producers {
-  @apply bg-red-600;
-}
-
-/* Animation utilities */
-.slide-in-right {
-  animation: slideInRight 0.3s ease-out;
-}
-
-.slide-in-left {
-  animation: slideInLeft 0.3s ease-out;
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-@keyframes slideInLeft {
-  from {
-    transform: translateX(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Custom scrollbar for mobile */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #a1a1a1;
-}
-
-/* Prevent zoom on iOS */
-input[type="number"],
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="tel"],
-select,
-textarea {
-  font-size: 16px; /* Prevents iOS zoom */
-}
-
-/* Touch-friendly form elements */
-button, input, select, textarea {
-  touch-action: manipulation;
-}
-
-/* Loading states */
-.loading-shimmer {
-  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-/* PWA specific styles */
-@media (display-mode: standalone) {
+/* Base styles matching screenshots */
+@layer base {
   body {
-    user-select: none; /* Prevent text selection in PWA mode */
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background-color: #f9fafb;
+    color: #374151;
+  }
+}
+
+/* Component styles matching the clean design */
+@layer components {
+  /* Card styling matching screenshots */
+  .rowdy-card {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200;
   }
   
-  .pwa-safe-area {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+  /* Team logo circles matching screenshots */
+  .team-logo-aviators {
+    @apply w-16 h-16 bg-blue-900 rounded-full flex items-center justify-center text-white font-bold text-xs;
+  }
+  
+  .team-logo-producers {
+    @apply w-16 h-16 bg-red-700 rounded-full flex items-center justify-center text-white font-bold text-xs;
+  }
+  
+  /* Navigation styling matching top nav */
+  .nav-link-active {
+    @apply bg-blue-100 text-blue-700 border border-blue-300 rounded-lg px-4 py-2 font-medium;
+  }
+  
+  .nav-link {
+    @apply text-gray-600 hover:text-gray-900 px-4 py-2 font-medium rounded-lg transition-colors;
+  }
+  
+  /* Button styling matching screenshots */
+  .btn-primary {
+    @apply bg-blue-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors;
+  }
+  
+  .btn-secondary {
+    @apply border border-gray-300 text-gray-700 bg-white px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors;
+  }
+  
+  /* Status badge styling */
+  .status-upcoming {
+    @apply bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .status-in-progress {
+    @apply bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  .status-completed {
+    @apply bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium;
+  }
+  
+  /* Header styling matching dark headers in screenshots */
+  .section-header {
+    @apply bg-gray-800 text-white rounded-lg p-6;
+  }
+  
+  /* Table styling matching scorecard */
+  .scorecard-table {
+    @apply min-w-full bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden;
+  }
+  
+  .scorecard-header {
+    @apply px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50 border-b border-gray-200;
+  }
+  
+  .scorecard-cell {
+    @apply px-4 py-3 text-center text-sm border-b border-gray-100;
+  }
+  
+  /* Team row styling */
+  .team-row-aviators {
+    @apply bg-blue-50 border-b border-gray-100;
+  }
+  
+  .team-row-producers {
+    @apply bg-red-50 border-b border-gray-100;
+  }
+  
+  .team-name-aviators {
+    @apply px-4 py-3 text-sm font-bold text-white bg-blue-900;
+  }
+  
+  .team-name-producers {
+    @apply px-4 py-3 text-sm font-bold text-white bg-red-700;
+  }
+  
+  /* Score input styling */
+  .score-input {
+    @apply w-12 h-8 text-center border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+  
+  /* Bottom navigation styling */
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg;
+  }
+  
+  .bottom-nav-item {
+    @apply flex-1 py-3 px-2 text-center transition-colors;
+  }
+  
+  .bottom-nav-item-active {
+    @apply text-blue-600;
+  }
+  
+  .bottom-nav-item-inactive {
+    @apply text-gray-400;
+  }
+  
+  /* Back link styling */
+  .back-link {
+    @apply flex items-center text-blue-600 hover:text-blue-700 font-medium transition-colors;
+  }
+  
+  /* Modal styling */
+  .modal-overlay {
+    @apply fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4;
+  }
+  
+  .modal-content {
+    @apply bg-white rounded-lg shadow-xl max-w-md w-full p-6;
+  }
+  
+  /* Form styling */
+  .form-input {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-gray-700 mb-1;
+  }
+  
+  /* Team indicator dots */
+  .team-dot-aviators {
+    @apply w-3 h-3 bg-blue-900 rounded-full;
+  }
+  
+  .team-dot-producers {
+    @apply w-3 h-3 bg-red-700 rounded-full;
+  }
+  
+  /* Match container styling */
+  .match-container {
+    @apply bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden;
+  }
+  
+  .match-header {
+    @apply px-6 py-4 border-b border-gray-200;
+  }
+  
+  .match-content {
+    @apply p-6;
+  }
+  
+  /* Admin controls styling */
+  .admin-controls {
+    @apply bg-yellow-50 border border-yellow-200 rounded-lg p-4;
+  }
+  
+  .admin-button {
+    @apply px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm;
+  }
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 640px) {
+  .team-logo-aviators,
+  .team-logo-producers {
+    @apply w-12 h-12 text-xs;
+  }
+  
+  .scorecard-cell {
+    @apply px-2 py-2;
+  }
+  
+  .score-input {
+    @apply w-10 h-7 text-xs;
+  }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .transition-colors {
+    transition: none;
   }
 }

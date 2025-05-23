@@ -1,394 +1,291 @@
+<!-- src/routes/matches/[matchId]/+page.svelte -->
 <script lang="ts">
-	import { supabase } from '$lib/supabase';
-	import { onMount, onDestroy } from 'svelte';
-	import { auth } from '$lib/stores/auth';
-	import Scorecard1v1 from '$lib/components/Scorecard1v1.svelte';
-	import Scorecard2v2Scramble from '$lib/components/Scorecard2v2Scramble.svelte';
-	import Scorecard2v2BestBall from '$lib/components/Scorecard2v2BestBall.svelte';
-	import { get } from 'svelte/store';
-	import { offlineStore } from '$lib/stores/offline-store';
-	import MatchHeader from '$lib/components/MatchHeader.svelte';
-	import EnhancedMatchScorecard from '$lib/components/EnhancedMatchScorecard.svelte'; 
-	import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
-	import Scorecard2v2Shamble from '$lib/components/Scorecard2v2Shamble.svelte';
-	import Scorecard4v4TeamScramble from '$lib/components/Scorecard4v4TeamScramble.svelte';
-	import Card from '$lib/components/Card.svelte';
-	import Button from '$lib/components/Button.svelte';
-	import Badge from '$lib/components/Badge.svelte';
-	import ScorecardV2 from '$lib/components/ScorecardV2.svelte';
+  import { onMount } from 'svelte';
+  import { auth } from '$lib/stores/auth';
+  import { supabase } from '$lib/supabase';
+  import { offlineStore } from '$lib/stores/offline-store';
 
-	interface User {
-		id: string;
-		username: string;
-		fullName: string;
-		isAdmin: boolean;
-	}
+  export let data;
+  
+  // Reactive data
+  $: match = data.match || {};
+  $: teams = data.teams || [];
+  $: matchType = data.matchType || {};
+  $: matchPlayers = data.matchPlayers || [];
+  $: scores = data.scores || [];
 
-	// Subscribe to auth store
-	let authState: { user: User | null; loading: boolean; error: string | null };
-	const unsubscribe = auth.subscribe((state) => {
-		authState = state;
-	});
+  // Local state
+  let playerScores = {};
+  let currentHole = 1;
+  let matchStatus = 'ALL SQUARE';
 
-	// Clean up subscription
-	onDestroy(unsubscribe);
+  // Subscribe to auth store
+  let authState;
+  const unsubscribe = auth.subscribe((state) => {
+    authState = state;
+  });
 
-	export let data;
+  // Get team players
+  const uniqueTeamIds = [...new Set(matchPlayers.map((mp) => mp.team_id))];
+  $: teamAPlayers = matchPlayers.filter((mp) => mp.team_id === uniqueTeamIds[0]);
+  $: teamBPlayers = matchPlayers.filter((mp) => mp.team_id === uniqueTeamIds[1]);
 
-	// Defensive destructuring - only get what we know exists in data
-	const match = data.match || {};
-	const teams = data.teams || [];
-	const matchType = data.matchType || {};
-	const matchPlayers = data.matchPlayers || [];
-	const scores = data.scores || [];
+  // Helper to check if match is locked
+  const isLocked = match?.is_locked;
 
-	// Get raw matchPlayers data and find unique team IDs
-	const uniqueTeamIds = [...new Set(matchPlayers.map((mp) => mp.team_id))];
+  // Par values for holes (simplified - normally would come from course data)
+  const parValues = {
+    17: { par: 4, handicap: 14 },
+    18: { par: 4, handicap: 4 }
+  };
 
-	// Filter players by team_id - using the first two unique team IDs
-	let teamAPlayers = [];
-	let teamBPlayers = [];
+  onMount(() => {
+    // Initialize player scores
+    [...teamAPlayers, ...teamBPlayers].forEach(player => {
+      playerScores[player.player_id] = {};
+      for (let hole = 1; hole <= 18; hole++) {
+        const existingScore = scores.find(s => 
+          s.player_id === player.player_id && s.hole_number === hole
+        );
+        playerScores[player.player_id][hole] = existingScore?.gross_score || '';
+      }
+    });
+  });
 
-	if (uniqueTeamIds.length >= 1) {
-		const teamAId = uniqueTeamIds[0];
-		teamAPlayers = matchPlayers.filter((mp) => mp.team_id === teamAId);
+  // Save score function
+  async function saveScore(playerId, hole, score) {
+    if (!authState?.user || isLocked) return;
 
-		if (uniqueTeamIds.length >= 2) {
-			const teamBId = uniqueTeamIds[1];
-			teamBPlayers = matchPlayers.filter((mp) => mp.team_id === teamBId);
-		}
-	}
+    playerScores[playerId][hole] = score;
 
-	// Get team objects from player team_id values
-	const teamA = uniqueTeamIds.length >= 1 ? teams.find((t) => t.id === uniqueTeamIds[0]) : null;
-	const teamB = uniqueTeamIds.length >= 2 ? teams.find((t) => t.id === uniqueTeamIds[1]) : null;
+    const playerEntry = matchPlayers.find((p) => p.player_id === playerId);
+    if (!playerEntry) return;
 
-	// For now, just show 18 holes
-	const holes = Array.from({ length: 18 }, (_, i) => i + 1);
+    // Add to offline store first
+    if (score !== null && score !== '') {
+      offlineStore.addScore({
+        player_id: playerId,
+        hole_number: hole,
+        score: Number(score),
+        match_id: match.id
+      });
+    }
 
-	// Helper to get score for a player/team/hole
-	function getScore(playerId: string, hole: number) {
-		return (
-			scores.find((s) => s.player_id === playerId && s.hole_number === hole)?.gross_score ?? ''
-		);
-	}
+    // If online, save to Supabase
+    if ($offlineStore.isOnline) {
+      try {
+        const { error } = await supabase.from('scores').upsert(
+          [
+            {
+              match_id: match.id,
+              player_id: playerId,
+              team: playerEntry.team_id,
+              hole_number: hole,
+              gross_score: score ? Number(score) : null
+            }
+          ],
+          { onConflict: 'match_id,player_id,hole_number' }
+        );
+        
+        if (error) {
+          console.error('Error saving score:', error.message);
+        } else {
+          offlineStore.markSynced(playerId, hole, match.id);
+        }
+      } catch (error) {
+        console.error('Failed to save score:', error);
+      }
+    }
+  }
 
-	// Helper to check if match is locked
-	const isLocked = match?.is_locked;
-	
-	// Match completion state
-	let showCompletionDialog = false;
-	let showEditDialog = false;
-	let matchSummary = {
-		teamATotal: 0,
-		teamBTotal: 0,
-		result: '',
-		leadingTeam: '',
-		matchPlayResult: ''
-	};
-
-	// Calculate current leading team and amount
-	let currentLeadingTeam = null;
-	let currentLeadAmount = 0;
-	let currentHole = 1;
-
-	// Initialize local score state for each player
-	onMount(() => {
-		for (const p of matchPlayers) {
-			p.scores = {};
-			for (const hole of holes) {
-				p.scores[hole] = getScore(p.player_id, hole);
-			}
-		}
-		
-		// Calculate current hole and leading team/amount
-		updateMatchStatus();
-	});
-	
-	// Function to update match status
-	function updateMatchStatus() {
-		// Find the highest hole with any score
-		const completedScores = scores.filter(
-			(score) => score.gross_score !== null
-		);
-		
-		if (completedScores.length > 0) {
-			currentHole = Math.max(...completedScores.map((s) => s.hole_number));
-		} else {
-			currentHole = 1;
-		}
-		
-		// Calculate leading team and amount
-		// This is a simplified version - would need to be expanded based on match type
-		if (completedScores.length > 0) {
-			let teamAPoints = 0;
-			let teamBPoints = 0;
-			
-			// Group scores by hole
-			const holeScores = {};
-			for (const score of completedScores) {
-				const hole = score.hole_number;
-				if (!holeScores[hole]) {
-					holeScores[hole] = [];
-				}
-				holeScores[hole].push(score);
-			}
-			
-			// For each hole with complete scores, determine winner
-			for (const [hole, scores] of Object.entries(holeScores)) {
-				const teamAScore = scores.find(s => 
-					matchPlayers.find(mp => mp.player_id === s.player_id && mp.team_id === teamA?.id)
-				);
-				const teamBScore = scores.find(s => 
-					matchPlayers.find(mp => mp.player_id === s.player_id && mp.team_id === teamB?.id)
-				);
-				
-				if (teamAScore && teamBScore) {
-					if (teamAScore.gross_score < teamBScore.gross_score) {
-						teamAPoints++;
-					} else if (teamBScore.gross_score < teamAScore.gross_score) {
-						teamBPoints++;
-					}
-					// Tied scores don't add points
-				}
-			}
-			
-			// Determine leading team
-			if (teamAPoints > teamBPoints) {
-				currentLeadingTeam = teamA?.id;
-				currentLeadAmount = teamAPoints - teamBPoints;
-			} else if (teamBPoints > teamAPoints) {
-				currentLeadingTeam = teamB?.id;
-				currentLeadAmount = teamBPoints - teamAPoints;
-			} else {
-				currentLeadingTeam = null;
-				currentLeadAmount = 0;
-			}
-		}
-	}
-
-	// Helper to get sync status for a score
-	function getSyncStatus(playerId: string, hole: number): 'pending' | 'synced' | 'failed' | null {
-		const state = get(offlineStore);
-		const matchId = match?.id;
-		if (!matchId) return null;
-		const score = state.scores.find(
-			(s) => s.player_id === playerId && s.hole_number === hole && s.match_id === matchId
-		);
-		if (!score) return null;
-		if (score.synced) return 'synced';
-		if (score.retry_count > 3) return 'failed';
-		return 'pending';
-	}
-
-	// Save score to Supabase with offline support
-	async function saveScore(playerId: string, hole: number, value: number | null) {
-		if (!authState?.user) return;
-
-		// Determine team ID from player's team_id
-		const playerEntry = matchPlayers.find((p) => p.player_id === playerId);
-		if (!playerEntry) return;
-
-		// Add to offline store first (this ensures data is saved even if offline)
-		offlineStore.addScore({
-			player_id: playerId,
-			hole_number: hole,
-			score: value,
-			match_id: match.id
-		});
-
-		// If we're online, try to save to Supabase directly
-		if ($offlineStore.isOnline) {
-			try {
-				// Upsert score for this player/hole/match
-				const { error } = await supabase.from('scores').upsert(
-					[
-						{
-							match_id: match.id,
-							player_id: playerId,
-							team: playerEntry.team_id, // Use player's team_id directly
-							hole_number: hole,
-							gross_score: value !== null ? Number(value) : null
-						}
-					],
-					{ onConflict: 'match_id,player_id,hole_number' }
-				);
-				
-				if (error) {
-					console.error('Error saving score:', error.message);
-				} else {
-					// Mark as synced in the offline store
-					offlineStore.markSynced(playerId, hole, match.id);
-					
-					// Update match status
-					updateMatchStatus();
-					
-					// Check if match should be completed
-					checkMatchCompletion();
-				}
-			} catch (error) {
-				console.error('Failed to save score:', error);
-				// Score remains in offline store for later sync
-			}
-		}
-	}
-	
-	// Check if match should be completed
-	function checkMatchCompletion() {
-		// Calculate completed holes
-		const completedScores = scores.filter(
-			(score) => score.gross_score !== null
-		);
-		
-		// If all 18 holes are filled or match is clinched
-		if (completedScores.length === 18 * matchPlayers.length || 
-			(currentLeadAmount > 0 && currentLeadAmount > 18 - currentHole)) {
-			
-			// Calculate totals for the summary
-			let teamATotal = 0;
-			let teamBTotal = 0;
-			
-			for (const score of completedScores) {
-				const player = matchPlayers.find(p => p.player_id === score.player_id);
-				if (player) {
-					if (player.team_id === teamA?.id) {
-						teamATotal += score.gross_score;
-					} else if (player.team_id === teamB?.id) {
-						teamBTotal += score.gross_score;
-					}
-				}
-			}
-			
-			// Calculate the match play result
-			const matchPlayResult = currentLeadAmount > 0 
-				? `${currentLeadAmount} UP` 
-				: 'AS';
-			
-			// Set match summary data
-			matchSummary = {
-				teamATotal,
-				teamBTotal,
-				result: matchPlayResult,
-				leadingTeam: currentLeadingTeam || 'tied',
-				matchPlayResult
-			};
-			
-			// Mark match as completed in Supabase
-			async function completeMatch() {
-				try {
-					const { error } = await supabase
-						.from('matches')
-						.update({
-							status: 'completed',
-							result: matchPlayResult,
-							leading_team: currentLeadingTeam,
-							lead_amount: currentLeadAmount
-						})
-						.eq('id', match.id);
-						
-					if (error) {
-						console.error('Error completing match:', error.message);
-					} else {
-						// Show completion dialog
-						showCompletionDialog = true;
-					}
-				} catch (error) {
-					console.error('Failed to complete match:', error);
-				}
-			}
-			
-			completeMatch();
-		}
-	}
-
-	// Toggle lock functionality
-	async function toggleLock() {
-		if (!authState?.user?.isAdmin) return;
-		
-		try {
-			const { error } = await supabase
-				.from('matches')
-				.update({ is_locked: !isLocked })
-				.eq('id', match.id);
-				
-			if (error) {
-				console.error('Error toggling match lock:', error.message);
-			} else {
-				// Redirect to reload data
-				window.location.reload();
-			}
-		} catch (error) {
-			console.error('Failed to toggle match lock:', error);
-		}
-	}
-
-	// Helper to determine match types
-	const is1v1 = matchType?.name === '1v1 Individual Match';
-	const is2v2Scramble = matchType?.name === '2v2 Team Scramble';
-	const is2v2BestBall = matchType?.name === '2v2 Team Best Ball';
-	const is2v2Shamble = matchType?.name === '2v2 Team Shamble';
-	const is4v4TeamScramble = matchType?.name === '4v4 Team Scramble';
+  // Calculate totals
+  function calculateTotal(holes) {
+    return holes.reduce((sum, hole) => {
+      const par = parValues[hole]?.par || 4;
+      return sum + par;
+    }, 0);
+  }
 </script>
 
-<OfflineIndicator />
+<div class="min-h-screen bg-gray-50">
+  <div class="max-w-4xl mx-auto px-4 py-6">
+    
+    <!-- Back Navigation -->
+    <div class="mb-6">
+      <a 
+        href="/rounds/{match.round_id}" 
+        class="flex items-center text-blue-600 hover:text-blue-700 font-medium"
+      >
+        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Round
+      </a>
+    </div>
 
-<section class="container mx-auto max-w-4xl p-4">
-	<Card>
-		<div class="mb-6">
-			<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
-				<div>
-					<h1 class="heading-lg mb-2">{teamA?.name || 'Team A'} vs {teamB?.name || 'Team B'}</h1>
-					<div class="flex flex-wrap gap-3 items-center">
-						<Badge variant="primary">{matchType?.name || 'Unknown'}</Badge>
-						<Badge variant={match.status === 'complete' ? 'success' : match.status === 'in_progress' ? 'warning' : 'secondary'}>
-							{match.status === 'complete' ? 'Completed' : match.status === 'in_progress' ? 'In Progress' : 'Scheduled'}
-						</Badge>
-					</div>
-				</div>
-				
-				{#if authState?.user?.isAdmin}
-					<div class="mt-4 md:mt-0">
-						<Button 
-							variant={isLocked ? "danger" : "primary"} 
-							size="sm" 
-							on:click={toggleMatchLock}
-						>
-							{isLocked ? 'Unlock Match' : 'Lock Match'}
-						</Button>
-					</div>
-				{/if}
-			</div>
-			
-			{#if currentLeadAmount !== null}
-				<div class="bg-blue-50 border border-blue-100 rounded-md p-4 mt-4">
-					<div class="font-semibold text-blue-800">Match Status: {currentLeadAmount > 0 ? `${leadingTeam?.name || 'Team'} leads by ${currentLeadAmount}` : 'All Square'}</div>
-					<div class="text-blue-600 text-sm mt-1">Current Hole: {currentHole}</div>
-				</div>
-			{/if}
-		</div>
+    <!-- Match Header -->
+    <div class="bg-gray-800 text-white rounded-lg p-6 mb-6">
+      <h1 class="text-2xl font-bold mb-2">Match 1</h1>
+      <div class="text-gray-300">
+        <div>{matchType?.name || '2-man Team Scramble'} • Round 1</div>
+      </div>
+    </div>
 
-		{#if is1v1}
-			<Scorecard1v1
-				players={[teamAPlayers[0], teamBPlayers[0]]}
-				{scores}
-				{holes}
-				{isLocked}
-				{saveScore}
-				getSyncStatus={getSyncStatus}
-			/>
-		{:else if is2v2Scramble}
-			<Scorecard2v2Scramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-		{:else if is2v2BestBall}
-			<Scorecard2v2BestBall {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-		{:else if is2v2Shamble}
-			<Scorecard2v2Shamble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-		{:else if is4v4TeamScramble}
-			<Scorecard4v4TeamScramble {teamAPlayers} {teamBPlayers} {scores} {holes} {isLocked} {saveScore} getSyncStatus={getSyncStatus} />
-		{:else}
-			<div class="p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200">
-				<h3 class="font-bold">Match Type Not Implemented</h3>
-				<p>This match type ({matchType?.name || 'Unknown'}) is not yet fully implemented.</p>
-			</div>
-		{/if}
-	</Card>
-</section>
+    <!-- Team Display -->
+    <div class="mb-6">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div class="grid grid-cols-2 gap-8">
+          <!-- Aviators -->
+          <div class="text-center">
+            <div class="flex items-center justify-center mb-2">
+              <div class="w-6 h-6 bg-blue-900 rounded-full mr-3"></div>
+              <span class="font-bold text-gray-900">AVIATORS</span>
+            </div>
+            <div class="space-y-1 text-gray-700">
+              {#each teamAPlayers as player}
+                <div>{player.player?.username || player.username}</div>
+              {/each}
+            </div>
+          </div>
+
+          <!-- Producers -->
+          <div class="text-center">
+            <div class="flex items-center justify-center mb-2">
+              <div class="w-6 h-6 bg-red-700 rounded-full mr-3"></div>
+              <span class="font-bold text-gray-900">PRODUCERS</span>
+            </div>
+            <div class="space-y-1 text-gray-700">
+              {#each teamBPlayers as player}
+                <div>{player.player?.username || player.username}</div>
+              {/each}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Match Status -->
+    <div class="mb-6 text-center">
+      <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div class="text-2xl font-bold text-gray-900">{matchStatus}</div>
+        <div class="text-gray-500">Hole {currentHole}</div>
+      </div>
+    </div>
+
+    <!-- Scorecard Table -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+      <div class="overflow-x-auto">
+        <table class="min-w-full">
+          <thead>
+            <tr class="border-b border-gray-200">
+              <th class="px-4 py-3 text-left text-sm font-medium text-gray-700 bg-gray-50">Hole</th>
+              <th class="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">17</th>
+              <th class="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">18</th>
+              <th class="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">IN</th>
+              <th class="px-4 py-3 text-center text-sm font-medium text-gray-700 bg-gray-50">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Par Row -->
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-3 text-sm font-medium text-gray-700">Par</td>
+              <td class="px-4 py-3 text-center text-sm">
+                4 <span class="text-blue-600">(14)</span>
+              </td>
+              <td class="px-4 py-3 text-center text-sm">
+                4 <span class="text-blue-600">(4)</span>
+              </td>
+              <td class="px-4 py-3 text-center text-sm font-medium bg-gray-50">36</td>
+              <td class="px-4 py-3 text-center text-sm font-medium bg-gray-50">71</td>
+            </tr>
+
+            <!-- Team A (Aviators) Row -->
+            <tr class="bg-blue-50 border-b border-gray-100">
+              <td class="px-4 py-3 text-sm font-bold text-white bg-blue-900">The Aviators</td>
+              <td class="px-4 py-3 text-center">
+                {#if !isLocked}
+                  <input 
+                    type="text" 
+                    class="w-12 h-8 text-center border border-gray-300 rounded text-sm"
+                    bind:value={playerScores[teamAPlayers[0]?.player_id]?.[17]}
+                    on:change={() => saveScore(teamAPlayers[0]?.player_id, 17, playerScores[teamAPlayers[0]?.player_id]?.[17])}
+                  />
+                {:else}
+                  <span class="text-sm">{playerScores[teamAPlayers[0]?.player_id]?.[17] || '-'}</span>
+                {/if}
+              </td>
+              <td class="px-4 py-3 text-center">
+                {#if !isLocked}
+                  <input 
+                    type="text" 
+                    class="w-12 h-8 text-center border border-gray-300 rounded text-sm"
+                    bind:value={playerScores[teamAPlayers[0]?.player_id]?.[18]}
+                    on:change={() => saveScore(teamAPlayers[0]?.player_id, 18, playerScores[teamAPlayers[0]?.player_id]?.[18])}
+                  />
+                {:else}
+                  <span class="text-sm">{playerScores[teamAPlayers[0]?.player_id]?.[18] || '-'}</span>
+                {/if}
+              </td>
+              <td class="px-4 py-3 text-center text-sm font-medium bg-gray-50">-</td>
+              <td class="px-4 py-3 text-center text-sm font-medium bg-gray-50">-</td>
+            </tr>
+
+            <!-- Match Status Row -->
+            <tr class="border-b border-gray-100">
+              <td class="px-4 py-3 text-sm font-medium text-gray-700">Match Status</td>
+              <td class="px-4 py-3 text-center text-sm">-</td>
+              <td class="px-4 py-3 text-center text-sm">-</td>
+              <td class="px-4 py-3 text-center text-sm bg-gray-50"></td>
+              <td class="px-4 py-3 text-center text-sm bg-gray-50"></td>
+            </tr>
+
+            <!-- Team B (Producers) Row -->
+            <tr class="bg-red-50 border-b border-gray-100">
+              <td class="px-4 py-3 text-sm font-bold text-white bg-red-700">The Producers</td>
+              <td class="px-4 py-3 text-center">
+                {#if !isLocked}
+                  <input 
+                    type="text" 
+                    class="w-12 h-8 text-center border border-gray-300 rounded text-sm"
+                    bind:value={playerScores[teamBPlayers[0]?.player_id]?.[17]}
+                    on:change={() => saveScore(teamBPlayers[0]?.player_id, 17, playerScores[teamBPlayers[0]?.player_id]?.[17])}
+                  />
+                {:else}
+                  <span class="text-sm">{playerScores[teamBPlayers[0]?.player_id]?.[17] || '-'}</span>
+                {/if}
+              </td>
+              <td class="px-4 py-3 text-center">
+                {#if !isLocked}
+                  <input 
+                    type="text" 
+                    class="w-12 h-8 text-center border border-gray-300 rounded text-sm"
+                    bind:value={playerScores[teamBPlayers[0]?.player_id]?.[18]}
+                    on:change={() => saveScore(teamBPlayers[0]?.player_id, 18, playerScores[teamBPlayers[0]?.player_id]?.[18])}
+                  />
+                {:else}
+                  <span class="text-sm">{playerScores[teamBPlayers[0]?.player_id]?.[18] || '-'}</span>
+                {/if}
+              </td>
+              <td class="px-4 py-3 text-center text-sm font-medium bg-gray-50">-</td>
+              <td class="px-4 py-3 text-center text-sm font-medium bg-gray-50">-</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Admin Controls -->
+    {#if authState?.user?.isAdmin}
+      <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+          <span class="text-sm font-medium text-yellow-800">Admin Controls</span>
+          <button 
+            class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition-colors text-sm"
+          >
+            {isLocked ? 'Unlock Match' : 'Lock Match'}
+          </button>
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>

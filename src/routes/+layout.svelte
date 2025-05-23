@@ -6,144 +6,134 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import '../app.postcss';
-  import OfflineIndicator from '$lib/components/OfflineIndicator.svelte';
 
-  let activeTab = 'tournament';
   let menuOpen = false;
-  let currentTournament = "Rowdy Cup 2025";
-  let currentRound = "Round 2";
-  let userTeam = "The Aviators";
-  let userStats = {
-    status: "2↑",
-    hole: 12,
-    winnings: 250,
-    activeBets: 3
-  };
 
-  // Determine active tab based on current route
-  $: {
-    const path = $page.url.pathname;
-    if (path.includes('/matches/')) activeTab = 'scorecard';
-    else if (path.includes('/sportsbook') || path.includes('/my-bets')) activeTab = 'betting';
-    else if (path.includes('/teams')) activeTab = 'teams';
-    else if (path === '/' || path.includes('/rounds/')) activeTab = 'tournament';
-    else activeTab = 'tournament';
-  }
-
-  function toggleMenu() {
-    menuOpen = !menuOpen;
-  }
-
-  function closeMenu() {
-    menuOpen = false;
-  }
-
-  function navigateToTab(tab: string) {
-    switch(tab) {
-      case 'scorecard':
-        // Navigate to current match or match selection
-        goto('/');
-        break;
-      case 'tournament':
-        goto('/');
-        break;
-      case 'betting':
-        goto('/sportsbook');
-        break;
-      case 'teams':
-        goto('/teams');
-        break;
-    }
-    activeTab = tab;
+  function navigateTo(path: string) {
+    goto(path);
   }
 
   onMount(() => {
     auth.checkSession();
   });
 
-  // DEBUG: Log auth state changes
-  $: console.log('LAYOUT: $auth.user =', $auth.user);
+  // Determine active page for navigation
+  $: currentPath = $page.url.pathname;
+  $: isHome = currentPath === '/' || currentPath.includes('/rounds/');
+  $: isTeams = currentPath.includes('/teams');
+  $: isHistory = currentPath.includes('/history');
+  $: isLogin = currentPath.includes('/login');
 </script>
 
-<div class="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-  <!-- Global offline indicator -->
-  <OfflineIndicator />
-
-  <!-- Tournament Header (only show on main pages) -->
-  {#if !$page.url.pathname.includes('/login') && !$page.url.pathname.includes('/admin')}
-    <div class="bg-gradient-to-r from-green-700 via-blue-600 to-purple-700 text-white shadow-lg">
-      <div class="px-4 py-6">
-        <div class="text-center">
-          <h1 class="text-2xl font-bold tracking-wide">{currentTournament}</h1>
-          <div class="flex justify-center items-center mt-2 space-x-4">
-            <span class="bg-white/20 px-3 py-1 rounded-full text-sm">
-              {currentRound}
-            </span>
-            {#if $auth.user}
-              <span class="bg-white/20 px-3 py-1 rounded-full text-sm">
-                Team: {userTeam}
-              </span>
-            {/if}
-          </div>
+<div class="min-h-screen bg-gray-50">
+  <!-- Top Navigation Header -->
+  <header class="bg-white border-b border-gray-200 shadow-sm">
+    <div class="px-4 py-4">
+      <div class="flex items-center justify-between">
+        <!-- Logo -->
+        <div class="flex items-center">
+          <img src="/rowdy-cup-logo.png" alt="Rowdy Cup" class="h-8 w-auto" />
         </div>
-      </div>
 
-      <!-- Quick Stats Bar -->
-      {#if $auth.user && !$auth.user.isAdmin}
-        <div class="bg-black/20 px-4 py-3">
-          <div class="flex justify-between text-center">
-            <div>
-              <div class="text-lg font-bold">{userStats.status}</div>
-              <div class="text-xs opacity-80">Status</div>
-            </div>
-            <div>
-              <div class="text-lg font-bold">{userStats.hole}</div>
-              <div class="text-xs opacity-80">Hole</div>
-            </div>
-            <div>
-              <div class="text-lg font-bold">${userStats.winnings}</div>
-              <div class="text-xs opacity-80">Winnings</div>
-            </div>
-            <div>
-              <div class="text-lg font-bold">{userStats.activeBets}</div>
-              <div class="text-xs opacity-80">Active Bets</div>
-            </div>
-          </div>
-        </div>
-      {/if}
-    </div>
-
-    <!-- Main Navigation Tabs -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-10">
-      <div class="flex">
-        {#each [
-          { id: 'tournament', label: 'Tournament', icon: '🏆' },
-          { id: 'scorecard', label: 'Scorecard', icon: '⛳' },
-          { id: 'betting', label: 'Betting', icon: '💰' },
-          { id: 'teams', label: 'Teams', icon: '👥' }
-        ] as tab}
-          <button
-            on:click={() => navigateToTab(tab.id)}
-            class="flex-1 py-4 px-2 text-center transition-all {
-              activeTab === tab.id
-                ? 'border-b-3 border-green-600 text-green-600 bg-green-50'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
-            }"
+        <!-- Desktop Navigation -->
+        <nav class="hidden md:flex items-center space-x-8">
+          <button 
+            on:click={() => navigateTo('/')}
+            class="px-4 py-2 rounded-lg font-medium transition-colors {isHome ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'text-gray-600 hover:text-gray-900'}"
           >
-            <div class="text-lg mb-1">{tab.icon}</div>
-            <div class="text-xs font-semibold">{tab.label}</div>
+            Home
           </button>
-        {/each}
+          <button 
+            on:click={() => navigateTo('/teams')}
+            class="px-4 py-2 rounded-lg font-medium transition-colors {isTeams ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'text-gray-600 hover:text-gray-900'}"
+          >
+            Teams
+          </button>
+          <button 
+            on:click={() => navigateTo('/history')}
+            class="px-4 py-2 rounded-lg font-medium transition-colors {isHistory ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'text-gray-600 hover:text-gray-900'}"
+          >
+            History
+          </button>
+          
+          {#if $auth.user}
+            <button 
+              on:click={() => auth.logout()}
+              class="px-4 py-2 text-red-600 hover:text-red-700 font-medium"
+            >
+              Logout
+            </button>
+          {:else}
+            <button 
+              on:click={() => navigateTo('/login')}
+              class="px-4 py-2 rounded-lg font-medium transition-colors {isLogin ? 'bg-blue-100 text-blue-700 border border-blue-300' : 'text-gray-600 hover:text-gray-900'}"
+            >
+              Login
+            </button>
+          {/if}
+        </nav>
+
+        <!-- Mobile menu button -->
+        <button 
+          on:click={() => menuOpen = !menuOpen}
+          class="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
       </div>
     </div>
-  {/if}
+
+    <!-- Mobile Navigation Menu -->
+    {#if menuOpen}
+      <div class="md:hidden border-t border-gray-200 bg-white">
+        <div class="px-4 py-2 space-y-1">
+          <button 
+            on:click={() => { navigateTo('/'); menuOpen = false; }}
+            class="block w-full text-left px-3 py-2 rounded-lg font-medium {isHome ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+          >
+            Home
+          </button>
+          <button 
+            on:click={() => { navigateTo('/teams'); menuOpen = false; }}
+            class="block w-full text-left px-3 py-2 rounded-lg font-medium {isTeams ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+          >
+            Teams
+          </button>
+          <button 
+            on:click={() => { navigateTo('/history'); menuOpen = false; }}
+            class="block w-full text-left px-3 py-2 rounded-lg font-medium {isHistory ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+          >
+            History
+          </button>
+          
+          {#if $auth.user}
+            <button 
+              on:click={() => { auth.logout(); menuOpen = false; }}
+              class="block w-full text-left px-3 py-2 text-red-600 hover:text-red-700 font-medium"
+            >
+              Logout
+            </button>
+          {:else}
+            <button 
+              on:click={() => { navigateTo('/login'); menuOpen = false; }}
+              class="block w-full text-left px-3 py-2 rounded-lg font-medium {isLogin ? 'bg-blue-100 text-blue-700' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'}"
+            >
+              Login
+            </button>
+          {/if}
+        </div>
+      </div>
+    {/if}
+  </header>
 
   <!-- Main Content -->
-  <main class="flex-1 overflow-y-auto {$page.url.pathname.includes('/matches/') ? '' : 'pb-20'}">
+  <main class="flex-1 pb-20 md:pb-4">
     {#if $auth.loading}
       <div class="flex justify-center items-center min-h-[50vh]">
         <div class="text-center">
-          <div class="w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p class="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -152,77 +142,49 @@
     {/if}
   </main>
 
-  <!-- Floating Action Menu (only on non-match pages) -->
-  {#if !$page.url.pathname.includes('/matches/') && !$page.url.pathname.includes('/login') && !$page.url.pathname.includes('/admin')}
-    <div class="fixed bottom-6 right-6 z-50">
+  <!-- Bottom Navigation (Mobile) -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+    <div class="flex">
       <button 
-        on:click={toggleMenu}
-        class="bg-gradient-to-r from-green-500 to-blue-500 text-white w-16 h-16 rounded-full shadow-2xl flex items-center justify-center text-2xl hover:scale-110 transition-transform"
+        on:click={() => navigateTo('/')}
+        class="flex-1 py-3 px-2 text-center {isHome ? 'text-blue-600' : 'text-gray-400'}"
       >
-        {menuOpen ? '✕' : '⚡'}
+        <div class="flex flex-col items-center">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          <span class="text-xs font-medium">Home</span>
+        </div>
       </button>
       
-      {#if menuOpen}
-        <div class="absolute bottom-20 right-0 bg-white rounded-2xl shadow-2xl p-4 w-48">
-          <div class="space-y-3">
-            {#if $auth.user}
-              <button 
-                on:click={() => { closeMenu(); goto('/my-bets'); }}
-                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                💰 My Bets
-              </button>
-              <button 
-                on:click={() => { closeMenu(); goto('/stats'); }}
-                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                📊 My Stats
-              </button>
-              {#if $auth.user.isAdmin}
-                <button 
-                  on:click={() => { closeMenu(); goto('/admin'); }}
-                  class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  ⚙️ Admin
-                </button>
-              {/if}
-              <button 
-                on:click={() => { closeMenu(); auth.logout(); }}
-                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors text-red-600"
-              >
-                🚪 Logout
-              </button>
-            {:else}
-              <button 
-                on:click={() => { closeMenu(); goto('/login'); }}
-                class="w-full text-left p-3 rounded-xl hover:bg-gray-100 transition-colors"
-              >
-                🔑 Login
-              </button>
-            {/if}
-          </div>
+      <button 
+        on:click={() => navigateTo('/teams')}
+        class="flex-1 py-3 px-2 text-center {isTeams ? 'text-blue-600' : 'text-gray-400'}"
+      >
+        <div class="flex flex-col items-center">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          <span class="text-xs font-medium">Teams</span>
         </div>
-      {/if}
+      </button>
+      
+      <button 
+        on:click={() => navigateTo('/history')}
+        class="flex-1 py-3 px-2 text-center {isHistory ? 'text-blue-600' : 'text-gray-400'}"
+      >
+        <div class="flex flex-col items-center">
+          <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="text-xs font-medium">History</span>
+        </div>
+      </button>
     </div>
-  {/if}
-
-  <!-- Overlay for menu -->
-  {#if menuOpen}
-    <div
-      class="fixed inset-0 bg-black/20 z-40"
-      on:click={closeMenu}
-      on:keydown={(e) => e.key === 'Escape' && closeMenu()}
-      role="button"
-      tabindex="0"
-    ></div>
-  {/if}
+  </nav>
 </div>
 
 <style>
-  .border-b-3 {
-    border-bottom-width: 3px;
-  }
-  
   @keyframes spin {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
