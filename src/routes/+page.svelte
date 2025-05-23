@@ -4,9 +4,10 @@
 	import { onMount } from 'svelte';
 
 	export let data;
-	const { tournament, rounds, matches, matchTypes, error } = data;
+	const { tournament, rounds, matches, matchTypes } = data;
 
-	let isAdmin = false;
+	let error = null;
+  let isAdmin = false;
 	let showEditTournament = false;
 	let showAddRound = false;
 
