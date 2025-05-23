@@ -12,9 +12,16 @@ const config = {
 		// If your environment is not supported, or you settled on a specific environment, switch out the adapter.
 		// See https://svelte.dev/docs/kit/adapters for more information about adapters.
 		adapter: adapter(),
-		files: {
-			serviceWorker: 'src/service-worker.ts'
+		
+		// Temporarily disable service worker to avoid import issues
+		serviceWorker: {
+			register: false
 		}
+		
+		// Once we fix the service worker, we can re-enable it with:
+		// files: {
+		// 	serviceWorker: 'src/service-worker.ts'
+		// }
 	}
 };
 
