@@ -206,6 +206,26 @@ export interface Database {
 					created_at?: string;
 				};
 			};
+			team_players: {
+				Row: {
+					team_id: string;
+					player_id: string;
+					tournament_id: string;
+					created_at?: string;
+				};
+				Insert: {
+					team_id: string;
+					player_id: string;
+					tournament_id: string;
+					created_at?: string;
+				};
+				Update: {
+					team_id?: string;
+					player_id?: string;
+					tournament_id?: string;
+					created_at?: string;
+				};
+			};
 			teams: {
 				Row: {
 					id: string;
