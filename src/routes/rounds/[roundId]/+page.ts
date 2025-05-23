@@ -21,6 +21,35 @@ export const load = async ({ params }) => {
 
 	// Fetch all match types for lookup
 	const { data: matchTypes } = await supabase.from('match_types').select('*');
+	
+	// If we have matches, get player information for each match
+	if (matches && matches.length > 0) {
+		// For each match, get the players
+		for (const match of matches) {
+			// Get team A players
+			const { data: teamAPlayers } = await supabase
+				.from('match_players')
+				.select('player_id, players:player_id(full_name, username)')
+				.eq('match_id', match.id)
+				.eq('team_id', 'team_a');
+
+			// Get team B players
+			const { data: teamBPlayers } = await supabase
+				.from('match_players')
+				.select('player_id, players:player_id(full_name, username)')
+				.eq('match_id', match.id)
+				.eq('team_id', 'team_b');
+
+			// Add player names to the match object
+			match.team_a_players = teamAPlayers?.map(
+				player => player.players?.full_name || player.players?.username || 'Unknown'
+			) || [];
+			
+			match.team_b_players = teamBPlayers?.map(
+				player => player.players?.full_name || player.players?.username || 'Unknown'
+			) || [];
+		}
+	}
 
 	return { round, matches: matches || [], matchTypes: matchTypes || [], tournament };
 };
