@@ -1,0 +1,19 @@
+{
+	"name": "Rowdy Cup Scorecard",
+	"short_name": "Rowdy Cup",
+	"description": "Golf tournament scorecard and sportsbook app for the Rowdy Cup",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#ffffff",
+	"theme_color": "#4ade80",
+	"icons": [
+		{
+			"src": "/favicon.png",
+			"sizes": "48x48",
+			"type": "image/png",
+			"purpose": "any maskable"
+		}
+	],
+	"orientation": "any",
+	"categories": ["sports", "golf", "games"]
+}

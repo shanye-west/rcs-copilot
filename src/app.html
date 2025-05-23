@@ -9,22 +9,32 @@
 		<meta name="mobile-web-app-capable" content="yes">
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 		<meta name="apple-mobile-web-app-title" content="Rowdy Cup" />
-		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/apple-touch-icon.png" />
+		<link rel="apple-touch-icon" href="%sveltekit.assets%/favicon.png" />
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
 		<div style="display: contents">%sveltekit.body%</div>
 		<script>
-			// Register service worker for PWA
+			// Register service worker for PWA with better error handling
 			if ('serviceWorker' in navigator) {
-				navigator.serviceWorker
-					.register('/service-worker.js')
-					.then((registration) => {
-						console.log('Service worker registered successfully:', registration.scope);
-					})
-					.catch((error) => {
-						console.error('Service worker registration failed:', error);
-					});
+				window.addEventListener('load', () => {
+					navigator.serviceWorker
+						.register('/service-worker.js')
+						.then((registration) => {
+							console.log('✅ Service worker registered successfully:', registration.scope);
+							
+							// Check for updates
+							registration.addEventListener('updatefound', () => {
+								console.log('🔄 Service worker update found');
+							});
+						})
+						.catch((error) => {
+							console.warn('⚠️ Service worker registration failed:', error);
+							// Don't throw - app should still work without SW
+						});
+				});
+			} else {
+				console.warn('⚠️ Service workers not supported in this browser');
 			}
 		</script>
 	</body>
